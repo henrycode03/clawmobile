@@ -3,13 +3,14 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/background">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/toolbar_color"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <ScrollView
@@ -22,59 +23,69 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Server URL -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Server URL"
-                android:textStyle="bold" />
+                android:textColor="@color/timestamp_text"
+                android:textSize="12sp"
+                android:paddingBottom="4dp" />
 
             <EditText
                 android:id="@+id/serverUrlInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="http://10.0.2.2:18789"
+                android:textColorHint="@color/timestamp_text"
+                android:textColor="@color/ai_bubble_text"
                 android:inputType="textUri"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:backgroundTint="@color/timestamp_text" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="• 模擬器測試 → http://10.0.2.2:18789\n• 實體手機(同WiFi) → http://GX10的IP:18789\n• ngrok → https://xxxx.ngrok-free.app"
-                android:textColor="#888888"
+                android:text="• Emulator → http://10.0.2.2:18789\n• Phone (same WiFi) → http://GX10_IP:18789\n• ngrok → https://xxxx.ngrok-free.app"
+                android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="4dp"
-                android:paddingBottom="20dp" />
+                android:paddingBottom="24dp" />
 
-            <!-- Gateway Token -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Gateway Token"
-                android:textStyle="bold" />
+                android:textColor="@color/timestamp_text"
+                android:textSize="12sp"
+                android:paddingBottom="4dp" />
 
             <EditText
                 android:id="@+id/gatewayTokenInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="貼上 gateway.auth.token 的值"
+                android:hint="gateway.auth.token from openclaw.json"
+                android:textColorHint="@color/timestamp_text"
+                android:textColor="@color/ai_bubble_text"
                 android:inputType="textPassword"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:backgroundTint="@color/timestamp_text" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="在 GX10 執行：\ncat ~/.openclaw/openclaw.json\n找 gateway.auth.token"
-                android:textColor="#888888"
+                android:text="Run on GX10: cat ~/.openclaw/openclaw.json"
+                android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="4dp"
-                android:paddingBottom="24dp" />
+                android:paddingBottom="32dp" />
 
             <Button
                 android:id="@+id/saveButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Save" />
+                android:text="Save"
+                android:backgroundTint="@color/send_button"
+                android:textColor="@color/white" />
 
         </LinearLayout>
     </ScrollView>
