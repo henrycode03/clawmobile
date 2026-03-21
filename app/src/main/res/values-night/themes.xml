@@ -10,7 +10,5 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/toolbar_color</item>
         <item name="android:navigationBarColor">@color/background</item>
-        <item name="popupMenuStyle">@style/DarkPopupMenu</item>
-        <item name="android:popupMenuStyle">@style/DarkPopupMenu</item>
     </style>
 </resources>

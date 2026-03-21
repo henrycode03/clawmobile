@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.text.SpannableString
 import com.user.data.ChatDatabase
 import com.user.data.ChatMessage
 import com.user.data.ChatSession
@@ -42,6 +43,9 @@ class MainActivity : AppCompatActivity() {
 
     // Track streaming bot message row
     private var streamingMsgId: Long = -1L
+
+    // For historical mode
+    private var isHistoryMode = false
 
     companion object {
         private const val VOICE_REQUEST_CODE = 100
@@ -101,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         val sessionFromIntent = intent.getStringExtra("session_id")
         if (sessionFromIntent != null) {
             currentSessionId = sessionFromIntent
+            android.util.Log.d("SESSION", "Loaded session: $currentSessionId")
             title = intent.getStringExtra("session_title") ?: "Chat"
         } else {
             lifecycleScope.launch {
@@ -117,7 +122,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadMessages() {
         lifecycleScope.launch {
+            android.util.Log.d("SESSION", "Loading messages for: $currentSessionId")
             database.chatDao().getMessagesBySession(currentSessionId).collect { messages ->
+                android.util.Log.d("MainActivity", "Session: $currentSessionId, messages: ${messages.size}")
                 chatAdapter.submitList(messages.toList())
                 if (messages.isNotEmpty()) {
                     binding.recyclerView.scrollToPosition(messages.size - 1)
@@ -269,16 +276,35 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        // Force menu text to be visible on dark background
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            val title = SpannableString(item.title)
+            title.setSpan(
+                android.text.style.ForegroundColorSpan(
+                    android.graphics.Color.BLACK
+                ),
+                0, title.length,
+                android.text.Spannable.SPAN_INCLUSIVE_INCLUSIVE
+            )
+            item.title = title
+        }
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_settings -> {
-                startActivity(Intent(this, SettingsActivity::class.java)); true
-            }
             R.id.action_new_chat -> {
-                startActivity(Intent(this, MainActivity::class.java)); true
+                startActivity(Intent(this, MainActivity::class.java))
+                true
+            }
+            R.id.action_history -> {
+                startActivity(Intent(this, SessionsActivity::class.java))
+                true
+            }
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
             }
             else -> super.onOptionsItemSelected(item)
         }

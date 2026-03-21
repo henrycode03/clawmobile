@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand -->
-    <color name="purple_300">#BB86FC</color>
-    <color name="purple_500">#075E54</color>
-    <color name="purple_700">#054D44</color>
-    <color name="teal_200">#25D366</color>
-    <color name="teal_700">#128C7E</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-
-    <!-- Dark theme (always dark, like WhatsApp dark mode) -->
+    <!-- Same as light — always dark -->
     <color name="background">#111B21</color>
     <color name="toolbar_color">#1F2C34</color>
     <color name="user_bubble">#005C4B</color>
