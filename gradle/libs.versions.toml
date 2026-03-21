@@ -14,6 +14,8 @@ material = "1.11.0"
 constraintlayout = "2.1.4"
 coordinatorlayout = "1.2.0"
 bouncycastle = "1.78.1"
+activity = "1.8.1"
+livedata = "2.6.2"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -40,6 +42,9 @@ bouncycastle = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.re
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version = "1.1.5" }
 espresso = { group = "androidx.test.espresso", name = "espresso-core", version = "3.5.1" }
+
+lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "livedata" }
+activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

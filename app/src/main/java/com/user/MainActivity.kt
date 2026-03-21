@@ -7,44 +7,23 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import android.text.SpannableString
-import com.user.data.ChatDatabase
-import com.user.data.ChatMessage
-import com.user.data.ChatSession
-import com.user.data.PrefsManager
 import com.user.databinding.ActivityMainBinding
-import com.user.service.GatewayClient
-import com.user.service.GatewayEvent
-import com.user.service.OpenClawService
-import com.user.service.Ed25519Manager
 import com.user.ui.ChatAdapter
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
+import com.user.viewmodel.ChatViewModel
+import android.text.SpannableString
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var chatAdapter: ChatAdapter
-    private lateinit var openClawService: OpenClawService
-    private lateinit var gatewayClient: GatewayClient
-    private lateinit var prefs: PrefsManager
-    private lateinit var database: ChatDatabase
-    private lateinit var ed25519: Ed25519Manager
-
-    private var currentSessionId = UUID.randomUUID().toString()
-
-    // Track streaming bot message row
-    private var streamingMsgId: Long = -1L
-
-    private var currentAgentId = "main"
+    private val viewModel: ChatViewModel by viewModels()
 
     companion object {
         private const val VOICE_REQUEST_CODE = 100
@@ -56,10 +35,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        prefs    = PrefsManager(this)
-        database = ChatDatabase.getDatabase(application)
-        ed25519  = Ed25519Manager(this)
-
+        // Check token
+        val prefs = com.user.data.PrefsManager(this)
         if (prefs.gatewayToken.isEmpty()) {
             Toast.makeText(this, "Please enter your Gateway Token", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -67,11 +44,84 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupRecyclerView()
-        setupServices()
-        setupSession()
-        loadMessages()
-        connectGateway()
+        setupObservers()
+        setupInputHandlers()
 
+        // Load session from intent (history) or start new
+        val sessionId    = intent.getStringExtra("session_id")
+        val sessionTitle = intent.getStringExtra("session_title")
+        if (sessionId != null) {
+            title = sessionTitle ?: "Chat"
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            viewModel.loadSession(sessionId, sessionTitle)
+        } else {
+            viewModel.startNewSession()
+        }
+
+        viewModel.connect()
+    }
+
+    private fun setupRecyclerView() {
+        chatAdapter = ChatAdapter()
+        binding.recyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+                .also { it.stackFromEnd = true }
+            adapter = chatAdapter
+        }
+    }
+
+    private fun setupObservers() {
+        viewModel.status.observe(this) { binding.statusText.text = it }
+
+        viewModel.messages.observe(this) { messages ->
+            chatAdapter.submitList(messages.toList())
+            if (messages.isNotEmpty()) {
+                binding.recyclerView.scrollToPosition(messages.size - 1)
+            }
+        }
+
+        viewModel.agents.observe(this) { agents ->
+            if (agents.isEmpty()) return@observe
+            val names = agents.map { it.name }
+            val adapter = ArrayAdapter(this,
+                android.R.layout.simple_spinner_item, names).also {
+                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            binding.agentSpinner.adapter = adapter
+            binding.agentSpinner.onItemSelectedListener =
+                object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?, view: View?, position: Int, id: Long
+                    ) { viewModel.switchAgent(agents[position].agentId) }
+                    override fun onNothingSelected(parent: AdapterView<*>?) {}
+                }
+        }
+
+        viewModel.isSending.observe(this) { sending ->
+            binding.sendButton.isEnabled = !sending
+        }
+
+        viewModel.showTyping.observe(this) { show ->
+            binding.typingIndicator.visibility = if (show) View.VISIBLE else View.GONE
+        }
+
+        viewModel.pairingRequired.observe(this) { deviceId ->
+            deviceId ?: return@observe
+            AlertDialog.Builder(this)
+                .setTitle("Device Pairing Required")
+                .setMessage(
+                    "Run on GX10:\n\n" +
+                            "1. openclaw gateway call device.pair.list --json\n\n" +
+                            "2. openclaw gateway call device.pair.approve \\\n" +
+                            "   --params '{\"requestId\":\"<id>\"}' --json\n\n" +
+                            "Device ID:\n${deviceId.take(12)}…\n\nThen restart the app."
+                )
+                .setPositiveButton("OK", null)
+                .show()
+        }
+    }
+
+    private fun setupInputHandlers() {
         binding.sendButton.setOnClickListener { sendMessage() }
         binding.voiceButton.setOnClickListener { startVoiceInput() }
         binding.historyButton.setOnClickListener {
@@ -84,202 +134,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRecyclerView() {
-        chatAdapter = ChatAdapter()
-        binding.recyclerView.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-                .also { it.stackFromEnd = true }
-            adapter = chatAdapter
-        }
-    }
-
-    private fun setupServices() {
-        openClawService = OpenClawService(
-            database.chatDao(), prefs.serverUrl, prefs.gatewayToken
-        )
-        gatewayClient = GatewayClient(prefs.serverUrl, prefs.gatewayToken, ed25519)
-    }
-
-    private fun setupSession() {
-        val sessionFromIntent = intent.getStringExtra("session_id")
-        if (sessionFromIntent != null) {
-            currentSessionId = sessionFromIntent
-            android.util.Log.d("SESSION", "Loaded session: $currentSessionId")
-            title = intent.getStringExtra("session_title") ?: "Chat"
-        } else {
-            lifecycleScope.launch {
-                database.chatDao().insertSession(
-                    ChatSession(
-                        sessionId = currentSessionId,
-                        title = "Chat ${SimpleDateFormat("MMM dd HH:mm",
-                            Locale.getDefault()).format(Date())}"
-                    )
-                )
-            }
-        }
-    }
-
-    private fun loadMessages() {
-        lifecycleScope.launch {
-            android.util.Log.d("SESSION", "Loading messages for: $currentSessionId")
-            database.chatDao().getMessagesBySession(currentSessionId).collect { messages ->
-                android.util.Log.d("MainActivity", "Session: $currentSessionId, messages: ${messages.size}")
-                chatAdapter.submitList(messages.toList())
-                if (messages.isNotEmpty()) {
-                    binding.recyclerView.scrollToPosition(messages.size - 1)
-                }
-            }
-        }
-    }
-
-    private fun connectGateway() {
-        gatewayClient.connect()
-        lifecycleScope.launch {
-            gatewayClient.events.collect { event ->
-                when (event) {
-                    is GatewayEvent.Connecting ->
-                        binding.statusText.text = "○ Connecting…"
-
-                    is GatewayEvent.HandshakeStarted ->
-                        binding.statusText.text = "● Handshaking…"
-
-                    is GatewayEvent.Ready -> {
-                        binding.statusText.text = "● Connected"
-                        binding.sendButton.isEnabled = true
-
-                        // Populate agent spinner
-                        val agentNames = event.agents.map { it.name }
-                        val spinnerAdapter = android.widget.ArrayAdapter(
-                            this@MainActivity,
-                            android.R.layout.simple_spinner_item,
-                            agentNames
-                        ).also {
-                            it.setDropDownViewResource(
-                                android.R.layout.simple_spinner_dropdown_item
-                            )
-                        }
-                        binding.agentSpinner.adapter = spinnerAdapter
-                        binding.agentSpinner.onItemSelectedListener =
-                            object : android.widget.AdapterView.OnItemSelectedListener {
-                                override fun onItemSelected(
-                                    parent: android.widget.AdapterView<*>?,
-                                    view: android.view.View?,
-                                    position: Int,
-                                    id: Long
-                                ) {
-                                    val agent = event.agents[position]
-                                    currentAgentId = agent.agentId
-                                    gatewayClient.switchAgent(agent.agentId)
-                                    binding.statusText.text =
-                                        "● ${agent.name}"
-                                }
-                                override fun onNothingSelected(
-                                    parent: android.widget.AdapterView<*>?
-                                ) {}
-                            }
-                    }
-
-                    is GatewayEvent.PairingRequired ->
-                        showPairingDialog(event.deviceId)
-
-                    is GatewayEvent.AuthError -> {
-                        binding.statusText.text = "✕ Auth failed"
-                        Toast.makeText(this@MainActivity,
-                            event.message, Toast.LENGTH_LONG).show()
-                    }
-
-                    is GatewayEvent.StreamDelta -> {
-                        binding.typingIndicator.visibility = View.GONE
-                        if (streamingMsgId == -1L) {
-                            val placeholder = ChatMessage(
-                                sessionId = currentSessionId,
-                                message   = event.text,
-                                isUser    = false
-                            )
-                            streamingMsgId = openClawService.saveMessageToLocal(placeholder)
-                        } else {
-                            val current = chatAdapter.currentList
-                                .firstOrNull { it.id == streamingMsgId }
-                            if (current != null) {
-                                openClawService.updateMessageContent(
-                                    streamingMsgId,
-                                    current.message + event.text
-                                )
-                            }
-                        }
-                    }
-
-                    is GatewayEvent.StreamFinal -> {
-                        if (streamingMsgId != -1L) {
-                            openClawService.updateMessageContent(
-                                streamingMsgId, event.fullText
-                            )
-                            streamingMsgId = -1L
-                        } else {
-                            openClawService.saveMessageToLocal(
-                                ChatMessage(
-                                    sessionId = currentSessionId,
-                                    message   = event.fullText,
-                                    isUser    = false
-                                )
-                            )
-                        }
-                        database.chatDao().updateSessionTime(
-                            currentSessionId, System.currentTimeMillis()
-                        )
-                        binding.sendButton.isEnabled = true
-                    }
-
-                    is GatewayEvent.ToolCall -> {
-                        val icon = if (event.done) "✅" else "⚙️"
-                        binding.statusText.text = "$icon ${event.name}"
-                    }
-
-                    is GatewayEvent.Disconnected ->
-                        binding.statusText.text = "○ Disconnected"
-
-                    is GatewayEvent.Error -> {
-                        binding.statusText.text = "✕ ${event.message}"
-                        binding.typingIndicator.visibility = View.GONE
-                        binding.sendButton.isEnabled = true
-                        Toast.makeText(this@MainActivity,
-                            event.message, Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
     private fun sendMessage() {
         val text = binding.messageEditText.text.toString().trim()
         if (text.isEmpty()) return
         binding.messageEditText.text?.clear()
-        binding.sendButton.isEnabled = false
-        binding.root.visibility = View.VISIBLE
-
-        lifecycleScope.launch {
-            openClawService.saveMessageToLocal(
-                ChatMessage(sessionId = currentSessionId, message = text, isUser = true)
-            )
-            database.chatDao().updateSessionTime(currentSessionId, System.currentTimeMillis())
-            gatewayClient.sendMessage(text)
-        }
-    }
-
-    private fun showPairingDialog(deviceId: String) {
-        binding.statusText.text = "⚠ Pairing required"
-        AlertDialog.Builder(this)
-            .setTitle("Device Pairing Required")
-            .setMessage(
-                "Run on GX10:\n\n" +
-                        "1. openclaw gateway call device.pair.list --json\n\n" +
-                        "2. openclaw gateway call device.pair.approve \\\n" +
-                        "   --params '{\"requestId\":\"<id>\"}' --json\n\n" +
-                        "Device ID (first 12 chars):\n${deviceId.take(12)}…\n\n" +
-                        "Then restart the app."
-            )
-            .setPositiveButton("OK", null)
-            .show()
+        viewModel.sendMessage(text)
     }
 
     private fun startVoiceInput() {
@@ -304,16 +163,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
-        // Force menu text to be visible on dark background
         for (i in 0 until menu.size()) {
-            val item = menu.getItem(i)
+            val item  = menu.getItem(i)
             val title = SpannableString(item.title)
             title.setSpan(
-                android.text.style.ForegroundColorSpan(
-                    android.graphics.Color.BLACK
-                ),
-                0, title.length,
-                android.text.Spannable.SPAN_INCLUSIVE_INCLUSIVE
+                android.text.style.ForegroundColorSpan(android.graphics.Color.BLACK),
+                0, title.length, android.text.Spannable.SPAN_INCLUSIVE_INCLUSIVE
             )
             item.title = title
         }
@@ -323,23 +178,21 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_new_chat -> {
-                startActivity(Intent(this, MainActivity::class.java))
-                true
+                startActivity(Intent(this, MainActivity::class.java)); true
             }
             R.id.action_history -> {
-                startActivity(Intent(this, SessionsActivity::class.java))
-                true
+                startActivity(Intent(this, SessionsActivity::class.java)); true
             }
             R.id.action_settings -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
+                startActivity(Intent(this, SettingsActivity::class.java)); true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        gatewayClient.disconnect()
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
+
 }
