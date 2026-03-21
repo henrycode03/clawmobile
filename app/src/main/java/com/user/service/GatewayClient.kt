@@ -183,7 +183,7 @@ class GatewayClient(
         override fun onClosed(ws: WebSocket, code: Int, reason: String) {
             state = State.DISCONNECTED
             _events.tryEmit(GatewayEvent.Disconnected)
-            if (code != 1000) scheduleReconnect() // 1000 = 正常關閉，不重連
+            if (code != 1000) scheduleReconnect() // 1000 = Normal shutdown, no reconnection
         }
     }
 

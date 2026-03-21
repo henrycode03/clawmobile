@@ -56,7 +56,11 @@ dependencies {
     implementation(libs.lifecycle.runtime)
     implementation(libs.lifecycle.viewmodel)
 
-//    implementation(libs.bouncycastle)
+    // MVVM
+    implementation(libs.lifecycle.livedata)
+    implementation(libs.activity.ktx)
+
+    // implementation(libs.bouncycastle)
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     testImplementation(libs.junit)
