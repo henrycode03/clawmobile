@@ -20,7 +20,8 @@
         <activity
             android:name=".ui.activities.MainActivity"
             android:exported="true"
-            android:parentActivityName=".ui.activities.SessionsActivity">
+            android:parentActivityName=".ui.activities.SessionsActivity"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
