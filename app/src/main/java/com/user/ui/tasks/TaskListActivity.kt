@@ -9,11 +9,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
+import com.user.data.DashboardSummary
+import com.user.data.PrefsManager
 import com.user.data.Task
 import com.user.data.TaskStatus
 import com.user.databinding.ActivityTaskListBinding
+import com.user.service.OrchestratorApiClient
 import com.user.viewmodel.TaskViewModel
 import com.user.viewmodel.TaskViewModelFactory
 
@@ -25,6 +29,8 @@ class TaskListActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTaskListBinding
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var viewModel: TaskViewModel
+    private var orchestratorApiClient: OrchestratorApiClient? = null
+    private lateinit var prefsManager: PrefsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +44,27 @@ class TaskListActivity : AppCompatActivity() {
         setupRecyclerView()
         setupViewModel()
         setupObservers()
+    }
+
+    private fun setupViewModel() {
+        val sessionId = intent.getStringExtra("session_id") ?: ""
+        val app = application as ClawMobileApplication
+        prefsManager = app.prefsManager
+
+        // Create Orchestrator API client if configured
+        if (prefsManager.isOrchestratorConfigured()) {
+            orchestratorApiClient = OrchestratorApiClient(
+                prefs = prefsManager,
+                gatewayToken = prefsManager.gatewayToken
+            )
+        }
+
+        val factory = TaskViewModelFactory(
+            repository = app.repository,
+            sessionId = sessionId,
+            orchestratorClient = orchestratorApiClient
+        )
+        viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
     }
 
     private fun setupRecyclerView() {
@@ -54,13 +81,6 @@ class TaskListActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupViewModel() {
-        val sessionId = intent.getStringExtra("session_id") ?: ""
-        val app = application as ClawMobileApplication
-        val factory = TaskViewModelFactory(repository = app.repository, sessionId = sessionId)
-        viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
-    }
-
     private fun setupObservers() {
         viewModel.allTasks.observe(this) { tasks ->
             submitTasks(tasks)
@@ -74,6 +94,28 @@ class TaskListActivity : AppCompatActivity() {
         viewModel.runningTasks.observe(this) { tasks ->
             binding.activeCount.text = tasks.size.toString()
         }
+
+        // Observe Orchestrator stats
+        viewModel.orchestratorStats.observe(this) { stats ->
+            updateOrchestratorStats(stats)
+        }
+    }
+
+    private fun updateOrchestratorStats(stats: DashboardSummary?) {
+        if (stats == null) return
+
+        // Show Orchestrator data in the UI
+        val statsText = getString(
+            R.string.orchestrator_stats,
+            stats.projects,
+            stats.tasks.total,
+            stats.tasks.inProgress,
+            stats.tasks.done,
+            stats.tasks.failed
+        )
+
+        binding.orchestratorStatsView.text = statsText
+        binding.orchestratorStatsView.visibility = TextView.VISIBLE
     }
 
     private fun dashboardSortRank(status: TaskStatus): Int {
@@ -141,7 +183,15 @@ class TaskListActivity : AppCompatActivity() {
                 true
             }
             R.id.action_refresh -> {
-                viewModel.loadTasks()
+                if (orchestratorApiClient != null && prefsManager.isOrchestratorConfigured()) {
+                    // Refresh from Orchestrator API
+                    viewModel.refreshAll()
+                    Snackbar.make(binding.root, "Syncing with Orchestrator...", Snackbar.LENGTH_SHORT).show()
+                } else {
+                    // Just refresh local data
+                    viewModel.loadTasks()
+                    Snackbar.make(binding.root, "Refreshing tasks...", Snackbar.LENGTH_SHORT).show()
+                }
                 true
             }
             R.id.action_filter_pending -> {

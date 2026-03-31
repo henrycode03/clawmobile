@@ -39,4 +39,18 @@ class PrefsManager(context: Context) {
     var currentEnvironment: String
         get() = prefs.getString("api_current_env", "default") ?: "default"
         set(value) = prefs.edit().putString("api_current_env", value).apply()
+
+    // ── Orchestrator Integration ──────────────────────────────
+    var orchestratorServerUrl: String
+        get() = prefs.getString("orchestrator_server_url", "") ?: ""
+        set(value) = prefs.edit().putString("orchestrator_server_url", value).apply()
+
+    var orchestratorApiKey: String
+        get() = prefs.getString("orchestrator_api_key", "") ?: ""
+        set(value) = prefs.edit().putString("orchestrator_api_key", value).apply()
+
+    // Check if Orchestrator is configured
+    fun isOrchestratorConfigured(): Boolean {
+        return orchestratorServerUrl.isNotEmpty() && orchestratorApiKey.isNotEmpty()
+    }
 }

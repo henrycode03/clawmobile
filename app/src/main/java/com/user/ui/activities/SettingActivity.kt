@@ -31,12 +31,21 @@ class SettingsActivity : AppCompatActivity() {
         binding.githubApiUrlInput.setText(prefs.githubApiUrl)
         binding.githubDefaultRepoInput.setText(prefs.githubDefaultRepo)
 
+        // User can configure Orchestrator settings
+        binding.orchestratorServerUrlInput.setText(prefs.orchestratorServerUrl)
+        binding.orchestratorApiKeyInput.setText(prefs.orchestratorApiKey)
+        binding.orchestratorSection.visibility = android.view.View.VISIBLE
+
         binding.saveButton.setOnClickListener {
             val serverUrl   = binding.serverUrlInput.text.toString().trim()
             val gatewayToken = binding.gatewayTokenInput.text.toString().trim()
             val githubToken = binding.githubTokenInput.text.toString().trim()
             val githubApiUrl = binding.githubApiUrlInput.text.toString().trim()
             val githubDefaultRepo = binding.githubDefaultRepoInput.text.toString().trim()
+
+            // Orchestrator settings (optional)
+            val orchestratorServerUrl = binding.orchestratorServerUrlInput.text.toString().trim()
+            val orchestratorApiKey = binding.orchestratorApiKeyInput.text.toString().trim()
 
             when {
                 serverUrl.isEmpty() -> {
@@ -70,6 +79,15 @@ class SettingsActivity : AppCompatActivity() {
                         prefs.githubDefaultRepo = githubDefaultRepo
                     }
 
+                    // Orchestrator settings (optional)
+                    if (orchestratorServerUrl.isNotBlank() && orchestratorApiKey.isNotBlank()) {
+                        prefs.orchestratorServerUrl = orchestratorServerUrl
+                        prefs.orchestratorApiKey = orchestratorApiKey
+                        binding.orchestratorSection.visibility = android.view.View.VISIBLE
+                    } else {
+                        binding.orchestratorSection.visibility = android.view.View.GONE
+                    }
+
                     Toast.makeText(this, "Settings saved! Reconnecting...", Toast.LENGTH_LONG).show()
                     finish()
                 }
@@ -82,7 +100,3 @@ class SettingsActivity : AppCompatActivity() {
         return true
     }
 }
-
-
-
-

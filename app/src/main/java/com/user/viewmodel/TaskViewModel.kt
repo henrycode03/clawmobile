@@ -1,12 +1,15 @@
 package com.user.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.user.data.DashboardSummary
 import com.user.data.Task
 import com.user.data.TaskStatus
 import com.user.repository.ChatRepository
+import com.user.service.OrchestratorApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,7 +21,8 @@ import kotlinx.coroutines.launch
  */
 class TaskViewModel(
     private val repository: ChatRepository,
-    private val sessionId: String
+    private val sessionId: String,
+    private val orchestratorClient: OrchestratorApiClient? = null
 ) : ViewModel() {
 
     private val _allTasks = MutableLiveData<List<Task>>()
@@ -30,13 +34,21 @@ class TaskViewModel(
     private val _runningTasks = MutableLiveData<List<Task>>()
     val runningTasks: LiveData<List<Task>> = _runningTasks
 
+    // Orchestrator stats
+    private val _orchestratorStats = MutableLiveData<DashboardSummary?>(null)
+    val orchestratorStats: LiveData<DashboardSummary?> = _orchestratorStats
+
     private val _currentTask = MutableLiveData<Task?>()
     val currentTask: LiveData<Task?> = _currentTask
 
     private var loadTasksJob: Job? = null
+    private var loadOrchestratorStatsJob: Job? = null
 
     init {
         loadTasks()
+        if (orchestratorClient != null) {
+            loadOrchestratorStats()
+        }
     }
 
     /**
@@ -51,8 +63,39 @@ class TaskViewModel(
                 _pendingTasks.value = allTasks.filter { it.status == TaskStatus.PENDING }
                 _runningTasks.value = allTasks.filter { it.status == TaskStatus.IN_PROGRESS }
             } catch (e: Exception) {
+                Log.e("TaskViewModel", "Error loading tasks", e)
                 e.printStackTrace()
             }
+        }
+    }
+
+    /**
+     * Load statistics from Orchestrator API
+     */
+    fun loadOrchestratorStats() {
+        loadOrchestratorStatsJob?.cancel()
+        loadOrchestratorStatsJob = CoroutineScope(Dispatchers.Main).launch {
+            try {
+                orchestratorClient?.getDashboardSummary()?.onSuccess { stats ->
+                    _orchestratorStats.value = stats
+                    Log.d("TaskViewModel", "Loaded Orchestrator stats: $stats")
+                }?.onFailure { error ->
+                    Log.w("TaskViewModel", "Failed to load Orchestrator stats: ${error.message}")
+                    // Don't set error state, just log it - local data still works
+                }
+            } catch (e: Exception) {
+                Log.e("TaskViewModel", "Error loading Orchestrator stats", e)
+            }
+        }
+    }
+
+    /**
+     * Refresh both local tasks and Orchestrator stats
+     */
+    fun refreshAll() {
+        loadTasks()
+        if (orchestratorClient != null) {
+            loadOrchestratorStats()
         }
     }
 
@@ -158,13 +201,14 @@ class TaskViewModel(
  */
 class TaskViewModelFactory(
     private val repository: ChatRepository,
-    private val sessionId: String
+    private val sessionId: String,
+    private val orchestratorClient: com.user.service.OrchestratorApiClient? = null
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
-            return TaskViewModel(repository, sessionId) as T
+            return TaskViewModel(repository, sessionId, orchestratorClient) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
