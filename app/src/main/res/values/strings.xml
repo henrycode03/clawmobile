@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Claw Mobile</string>
     <string name="toolbar_title">Claw Mobile</string>
@@ -15,4 +16,45 @@
     <string name="attachment_voice">Voice</string>
     <string name="image_attached">Image attached</string>
     <string name="remove_preview">Remove preview</string>
+
+    <!-- Task List -->
+    <string name="pending_tasks">Pending: %d</string>
+    <string name="active_tasks">Active: %d</string>
+    <string name="no_tasks">No tasks found</string>
+
+    <!-- Orchestrator Integration -->
+    <string name="orchestrator_stats">📊 Orchestrator:\n%d projects\nTotal: %d | In Progress: %d | Done: %d | Failed: %d</string>
+    <string name="orchestrator_syncing">Syncing with Orchestrator…</string>
+    <string name="settings_orchestrator_title">Orchestrator Settings</string>
+    <string name="settings_orchestrator_url">Orchestrator Server URL</string>
+    <string name="settings_orchestrator_api_key">API Key</string>
+    <string name="settings_orchestrator_test">Test Connection</string>
+
+    <!-- Settings Activity -->
+    <string name="settings_gateway_title">GX10 OpenClaw Gateway</string>
+    <string name="settings_server_url">Server URL</string>
+    <string name="settings_server_url_hint">http://TAILSCALE_OR_GX10_IP:8000</string>
+    <string name="settings_server_url_desc">Recommended path:\n• ClawMobile -&gt; Tailscale -&gt; GX10 host -&gt; OpenClaw Gateway :8000\n\nExamples:\n• Phone over Tailscale -&gt; http://100.x.y.z:8000\n• Same LAN phone -&gt; http://GX10_LAN_IP:8000\n• Emulator tunnel testing -&gt; http://10.0.2.2:18789\n\nDo not use the Orchestrator dashboard/API URL here. Port 8080 is separate.</string>
+    <string name="settings_gateway_token">Gateway Token</string>
+    <string name="settings_gateway_token_hint">gateway.auth.token from openclaw.json</string>
+    <string name="settings_gateway_token_desc">Copy openclaw gateway.auth.token.\nNot directly to the Orchestrator API.</string>
+
+    <string name="settings_orchestrator_dashboard_title">Orchestrator Dashboard API (Optional)</string>
+    <string name="settings_orchestrator_server_url_hint">http://GX10_IP:8080/api/v1</string>
+    <string name="settings_orchestrator_api_key_desc">Mobile Gateway API Key</string>
+    <string name="settings_orchestrator_api_key_hint">oc_orche...</string>
+    <string name="settings_orchestrator_desc">This key allows ClawMobile to sync project/task stats from Orchestrator dashboard.</string>
+
+    <string name="settings_github_title">GitHub Integration (Optional)</string>
+    <string name="settings_github_token">Personal Access Token</string>
+    <string name="settings_github_token_hint">ghp_xxxxxxxxxxxx</string>
+    <string name="settings_github_token_desc">Generate at: github.com/settings/tokens</string>
+    <string name="settings_github_api_url">API URL (Optional)</string>
+    <string name="settings_github_api_url_hint">https://api.github.com</string>
+    <string name="settings_github_repo">Default Repository (Optional)</string>
+    <string name="settings_github_repo_hint">owner/repo</string>
+    <string name="settings_github_desc">• @github show PRs - List open PRs\n• @github issue #123 - Show issue\n• @github commit abc123 - Show commit</string>
+
+    <string name="settings_save">Save Settings</string>
+
 </resources>

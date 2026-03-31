@@ -82,6 +82,20 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Orchestrator Stats Display -->
+    <TextView
+        android:id="@+id/orchestratorStatsView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:background="@color/primary_dark"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/summaryRow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <!-- Empty State -->
     <TextView
         android:id="@+id/emptyView"
@@ -91,7 +105,7 @@
         android:textColor="@color/text_secondary"
         android:textSize="16sp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/summaryRow"
+        app:layout_constraintTop_toBottomOf="@id/orchestratorStatsView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -101,9 +115,10 @@
         android:id="@+id/recyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/summaryRow"
+        app:layout_constraintTop_toBottomOf="@id/orchestratorStatsView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

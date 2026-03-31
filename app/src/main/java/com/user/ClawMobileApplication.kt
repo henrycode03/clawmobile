@@ -18,7 +18,7 @@ class ClawMobileApplication : Application() {
     }
 
     private val database by lazy { ChatDatabase.getDatabase(this) }
-    private val prefs by lazy { PrefsManager(this) }
+    val prefsManager by lazy { PrefsManager(this) }
 
     // DAO instances for use in activities
     val gitConnectionDao by lazy { database.gitConnectionDao() }
@@ -32,7 +32,7 @@ class ClawMobileApplication : Application() {
             gitConnectionDao,
             projectContextDao,
             taskDao,
-            prefs
+            prefsManager
         )
     }
 }

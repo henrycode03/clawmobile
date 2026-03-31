@@ -27,7 +27,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="GX10 OpenClaw Gateway"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_gateway_title"
                 android:textColor="@color/ai_bubble_text"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -37,7 +39,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Server URL"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_server_url"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingBottom="4dp" />
@@ -46,7 +50,11 @@
                 android:id="@+id/serverUrlInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="http://TAILSCALE_OR_GX10_IP:8000"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:minHeight="48dp"
+                android:hint="@string/settings_server_url_hint"
+                android:autofillHints="none"
                 android:textColorHint="@color/timestamp_text"
                 android:textColor="@color/ai_bubble_text"
                 android:inputType="textUri"
@@ -56,7 +64,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Recommended path:\n• ClawMobile -> Tailscale -> GX10 host -> OpenClaw Gateway :8000\n\nExamples:\n• Phone over Tailscale -> http://100.x.y.z:8000\n• Same LAN phone -> http://GX10_LAN_IP:8000\n• Emulator tunnel testing -> http://10.0.2.2:18789\n\nDo not use the Orchestrator dashboard/API URL here. Port 8080 is separate."
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_server_url_desc"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="4dp"
@@ -65,7 +75,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Gateway Token"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_gateway_token"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingBottom="4dp" />
@@ -74,7 +86,11 @@
                 android:id="@+id/gatewayTokenInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="gateway.auth.token from openclaw.json"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:minHeight="48dp"
+                android:hint="@string/settings_gateway_token_hint"
+                android:autofillHints="none"
                 android:textColorHint="@color/timestamp_text"
                 android:textColor="@color/ai_bubble_text"
                 android:inputType="textPassword"
@@ -84,17 +100,103 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Run on GX10 host: cat ~/.openclaw/openclaw.json\nCopy gateway.auth.token.\nThis app talks to OpenClaw Gateway, not directly to the Orchestrator API."
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_gateway_token_desc"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="4dp"
                 android:paddingBottom="24dp" />
 
+            <!-- Orchestrator Integration -->
+            <LinearLayout
+                android:id="@+id/orchestratorSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="24dp"
+                android:visibility="visible">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_orchestrator_dashboard_title"
+                android:textColor="@color/ai_bubble_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_orchestrator_url"
+                android:textColor="@color/timestamp_text"
+                android:textSize="12sp"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/orchestratorServerUrlInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:minHeight="48dp"
+                android:layout_gravity="center_horizontal"
+                android:hint="@string/settings_orchestrator_server_url_hint"
+                android:autofillHints="none"
+                android:textColorHint="@color/timestamp_text"
+                android:textColor="@color/ai_bubble_text"
+                android:inputType="textUri"
+                android:singleLine="true"
+                android:backgroundTint="@color/timestamp_text" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_orchestrator_api_key_desc"
+                android:textColor="@color/timestamp_text"
+                android:textSize="12sp"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/orchestratorApiKeyInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:minHeight="48dp"
+                android:layout_gravity="center_horizontal"
+                android:hint="@string/settings_orchestrator_api_key_hint"
+                android:autofillHints="none"
+                android:textColorHint="@color/timestamp_text"
+                android:textColor="@color/ai_bubble_text"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:backgroundTint="@color/timestamp_text" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_orchestrator_desc"
+                android:textColor="@color/timestamp_text"
+                android:textSize="12sp"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp" />
+
             <!-- GitHub Integration -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="GitHub Integration (Optional)"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_title"
                 android:textColor="@color/ai_bubble_text"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -104,7 +206,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Personal Access Token"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_token"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingBottom="4dp" />
@@ -113,7 +217,11 @@
                 android:id="@+id/githubTokenInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ghp_xxxxxxxxxxxx"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:minHeight="48dp"
+                android:hint="@string/settings_github_token_hint"
+                android:autofillHints="none"
                 android:textColorHint="@color/timestamp_text"
                 android:textColor="@color/ai_bubble_text"
                 android:inputType="textPassword"
@@ -123,7 +231,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Generate at: github.com/settings/tokens"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_token_desc"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="4dp"
@@ -132,7 +242,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="API URL (Optional)"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_api_url"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingBottom="4dp" />
@@ -141,7 +253,11 @@
                 android:id="@+id/githubApiUrlInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="https://api.github.com"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:minHeight="48dp"
+                android:hint="@string/settings_github_api_url_hint"
+                android:autofillHints="none"
                 android:textColorHint="@color/timestamp_text"
                 android:textColor="@color/ai_bubble_text"
                 android:inputType="textUri"
@@ -151,7 +267,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Default Repository (Optional)"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_repo"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="16dp"
@@ -161,7 +279,10 @@
                 android:id="@+id/githubDefaultRepoInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="owner/repo"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:hint="@string/settings_github_repo_hint"
+                android:autofillHints="none"
                 android:textColorHint="@color/timestamp_text"
                 android:textColor="@color/ai_bubble_text"
                 android:inputType="text"
@@ -171,7 +292,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="• @github show PRs - List open PRs\n• @github issue #123 - Show issue\n• @github commit abc123 - Show commit"
+                android:maxWidth="488dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_github_desc"
                 android:textColor="@color/timestamp_text"
                 android:textSize="12sp"
                 android:paddingTop="8dp"
@@ -179,12 +302,16 @@
 
             <Button
                 android:id="@+id/saveButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Save Settings"
+                android:layout_gravity="center_horizontal"
+                android:minWidth="200dp"
+                android:maxWidth="320dp"
+                android:text="@string/settings_save"
                 android:backgroundTint="@color/send_button"
                 android:textColor="@color/white" />
 
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

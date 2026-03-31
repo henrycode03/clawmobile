@@ -37,7 +37,16 @@ class TaskDetailActivity : AppCompatActivity() {
 
     private fun setupViewModel(sessionId: String) {
         val app = application as ClawMobileApplication
-        val factory = TaskViewModelFactory(repository = app.repository, sessionId = sessionId)
+        val factory = TaskViewModelFactory(
+            repository = app.repository,
+            sessionId = sessionId,
+            orchestratorClient = if (app.prefsManager.isOrchestratorConfigured()) {
+                com.user.service.OrchestratorApiClient(
+                    prefs = app.prefsManager,
+                    gatewayToken = app.prefsManager.gatewayToken
+                )
+            } else null
+        )
         viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
     }
 
