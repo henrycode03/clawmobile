@@ -150,7 +150,7 @@
                     android:autofillHints="none"
                     android:textColorHint="@color/timestamp_text"
                     android:textColor="@color/ai_bubble_text"
-                    android:inputType="textUri"
+                    android:inputType="textUri|textNoSuggestions"
                     android:singleLine="true"
                     android:backgroundTint="@color/timestamp_text" />
 
