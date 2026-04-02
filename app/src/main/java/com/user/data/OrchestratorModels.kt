@@ -120,26 +120,7 @@ data class OrchestTask(
     val createdAt: String,
     val updatedAt: String,
     val priority: Int = 0
-) {
-    companion object {
-        /**
-         * Convert from OrchestTaskResponse (API response model with int IDs) to OrchestTask
-         */
-        fun fromResponse(response: OrchestTaskResponse): OrchestTask {
-            return OrchestTask(
-                taskId = response.id.toString(),
-                title = response.title,
-                description = response.description,
-                status = response.status,
-                projectId = response.projectId.toString(),
-                sessionId = null,
-                createdAt = response.createdAt,
-                updatedAt = response.updatedAt ?: response.createdAt,
-                priority = response.priority
-            )
-        }
-    }
-}
+)
 
 /**
  * Response wrapper for /api/v1/mobile/projects/{projectId}/tasks endpoint
@@ -147,9 +128,9 @@ data class OrchestTask(
 data class ProjectTasksResponse(
     @SerializedName("project_id")
     val projectId: Int,
-    val tasks: List<OrchestTaskResponse>,
+    val tasks: List<OrchestTaskResponse> = emptyList(),
     @SerializedName("total")
-    val total: Int
+    val total: Int = 0
 )
 
 /**

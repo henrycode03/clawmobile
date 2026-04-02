@@ -1,11 +1,14 @@
 package com.user.ui.activities
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.user.BuildConfig
 import com.user.data.PrefsManager
 import com.user.databinding.ActivitySettingsBinding
+
+private const val TAG = "SettingActivity"
 
 /**
  * Settings activity for configuring gateway, GitHub, and Orchestrator integration.
@@ -86,20 +89,13 @@ class SettingsActivity : AppCompatActivity() {
             val githubApiUrl = binding.githubApiUrlInput.text.toString().trim()
             val githubDefaultRepo = binding.githubDefaultRepoInput.text.toString().trim()
 
-            // Orchestrator settings (optional) - auto-correct common URL mistakes
+            // Orchestrator settings (optional) - save exactly as entered
             var orchestratorServerUrl = binding.orchestratorServerUrlInput.text.toString().trim()
-            if (orchestratorServerUrl.isNotEmpty()) {
-                orchestratorServerUrl = orchestratorServerUrl.trimEnd('/')
-                if (orchestratorServerUrl.endsWith("/api/v1")) {
-                    orchestratorServerUrl = orchestratorServerUrl.removeSuffix("/api/v1")
-                    Toast.makeText(
-                        this,
-                        "Auto-corrected: removed /api/v1 suffix. URL will be saved as $orchestratorServerUrl",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
             val orchestratorApiKey = binding.orchestratorApiKeyInput.text.toString().trim()
+
+            Log.d(TAG, "BEFORE SAVING:")
+            Log.d(TAG, "  orchestratorServerUrl input: '$orchestratorServerUrl'")
+            Log.d(TAG, "  gatewayToken: '$gatewayToken'")
 
             when {
                 serverUrl.isEmpty() -> {
@@ -125,11 +121,11 @@ class SettingsActivity : AppCompatActivity() {
                         prefs.githubDefaultRepo = githubDefaultRepo
                     }
 
-                    // Orchestrator settings (optional) - auto-corrected URL above
-                    // Note: The API key is the same as the Gateway Token - there's only one key!
+                    // Orchestrator settings (optional) - save exactly as entered
+                    val apiKeyToUse = orchestratorApiKey.ifEmpty { gatewayToken }
                     if (orchestratorServerUrl.isNotBlank()) {
-                        // Auto-use the gateway token for orchestrator api key since they're the same
-                        prefs.orchestratorApiKey = gatewayToken
+                        // Use the API key from input field, or fallback to gateway token if empty
+                        prefs.orchestratorApiKey = apiKeyToUse
                         Toast.makeText(
                             this,
                             "Orchestrator configured: $orchestratorServerUrl (using Gateway Token)",
@@ -145,6 +141,19 @@ class SettingsActivity : AppCompatActivity() {
 
                     // Keep Orchestrator section visible for continued configuration
                     binding.orchestratorSection.visibility = android.view.View.VISIBLE
+
+                    Log.d(TAG, "SAVING settings:")
+                    Log.d(TAG, "  serverUrl = '$serverUrl'")
+                    Log.d(TAG, "  orchestratorServerUrl = '$orchestratorServerUrl'")
+                    Log.d(TAG, "  orchestratorApiKey = '${if (apiKeyToUse.isEmpty()) "(empty)" else "${apiKeyToUse.take(8)}..."}'")
+
+                    prefs.serverUrl = serverUrl
+                    prefs.orchestratorServerUrl = orchestratorServerUrl
+
+                    // Verify what was actually saved
+                    val savedOrchUrl = prefs.orchestratorServerUrl
+                    val savedApiKey = prefs.orchestratorApiKey
+                    Log.d(TAG, "VERIFIED SAVED - Url: '$savedOrchUrl', ApiKey: '${if (savedApiKey.isEmpty()) "(empty)" else "${savedApiKey.take(8)}..."}'")
 
                     Toast.makeText(this, "Settings saved! Reconnecting...", Toast.LENGTH_LONG).show()
                     finish()
