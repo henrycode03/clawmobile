@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +15,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
 import com.user.data.DashboardSummary
+import com.user.data.RecentActivity
 import com.user.data.OrchestTask
 import com.user.data.PrefsManager
 import com.user.data.Project
@@ -53,6 +55,12 @@ class TaskListActivity : AppCompatActivity() {
         setupProjectRecyclerView()
         setupViewModel()
         setupObservers()
+
+        if ((intent.getStringExtra("session_id") ?: "").isBlank()) {
+            binding.recyclerView.visibility = View.GONE
+        } else {
+            binding.recyclerView.visibility = View.VISIBLE
+        }
     }
 
     private fun setupViewModel() {
@@ -104,7 +112,11 @@ class TaskListActivity : AppCompatActivity() {
     private fun setupProjectRecyclerView() {
         projectProgressAdapter = ProjectProgressAdapter(
             onProjectClickListener = { project ->
-                // TODO: Navigate to project details or show more info
+                val intent = Intent(this, ProjectDetailActivity::class.java).apply {
+                    putExtra("project_id", project.getProjectId())
+                    putExtra("project_name", project.name)
+                }
+                startActivity(intent)
             }
         )
         binding.projectsRecyclerView.apply {
@@ -157,6 +169,14 @@ class TaskListActivity : AppCompatActivity() {
             updateOrchestratorDashboard(stats)
         }
 
+        viewModel.recentActivity.observe(this) { activity ->
+            updateRecentActivity(activity)
+        }
+
+        viewModel.orchestratorWarning.observe(this) { warning ->
+            updateOrchestratorWarning(warning)
+        }
+
         // Load and display projects from Orchestrator with task counts
         loadProjectsFromOrchestrator()
     }
@@ -175,6 +195,18 @@ class TaskListActivity : AppCompatActivity() {
         binding.completedCount.text = stats.tasks.done.toString()
 
         // Show comprehensive stats summary
+        val activeCount = maxOf(stats.tasks.inProgress, stats.tasks.running)
+        binding.executionSummaryView.text = when {
+            stats.tasks.failed > 0 && stats.tasks.done > 0 ->
+                "${stats.tasks.failed} failed, ${stats.tasks.done} done"
+            stats.tasks.failed > 0 -> "${stats.tasks.failed} failed task(s) need attention"
+            activeCount > 0 ->
+                "$activeCount task(s) currently running"
+            pending > 0 -> "$pending task(s) waiting to run"
+            stats.tasks.done > 0 -> "${stats.tasks.done} task(s) completed successfully"
+            else -> "No execution activity yet"
+        }
+
         val statsText = getString(
             R.string.orchestrator_dashboard_stats,
             stats.projects,
@@ -187,6 +219,20 @@ class TaskListActivity : AppCompatActivity() {
 
         binding.orchestratorStatsView.text = statsText
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
+    }
+
+    private fun updateOrchestratorWarning(warning: String?) {
+        if (warning.isNullOrBlank()) {
+            return
+        }
+
+        binding.orchestratorStatsView.text = "Orchestrator sync issue:\n$warning"
+        binding.orchestratorStatsView.visibility = TextView.VISIBLE
+        binding.executionSummaryView.text = "Sync problem detected"
+    }
+
+    private fun updateRecentActivity(activity: List<RecentActivity>) {
+        binding.recentActivityView.text = "Open a project to inspect logs, status, and task details."
     }
 
     private fun updateLocalStats(tasks: List<Task>) {
@@ -235,10 +281,10 @@ class TaskListActivity : AppCompatActivity() {
                     loadProjectTaskCounts(projects)
                 }
             }?.onFailure { error ->
-                // Silent failure - just log, don't show error to user
-                Log.d("TaskListActivity", "Orchestrator projects unavailable (normal when not on same network): ${error.message}")
+                Log.d("TaskListActivity", "Orchestrator projects unavailable: ${error.message}")
                 runOnUiThread {
                     projectProgressAdapter.submitList(emptyList())
+                    updateOrchestratorWarning(error.message ?: "Unable to load Orchestrator projects.")
                 }
             }
         }
@@ -262,35 +308,33 @@ class TaskListActivity : AppCompatActivity() {
                         }
 
                         if (position >= 0) {
-                            val holder = binding.projectsRecyclerView.findViewHolderForAdapterPosition(position)
-                            if (holder is ProjectProgressAdapter.ProjectViewHolder) {
-                                status.tasks?.let { tasks ->
-                                    Log.d("TaskListActivity", "Loaded stats for project $projectId: $tasks")
-                                    holder.updateWithStats(
-                                        running = tasks.running ?: 0,
-                                        pending = tasks.pending ?: 0,
-                                        completed = tasks.done ?: 0,
-                                        total = tasks.total ?: 0
+                            status.tasks?.let { tasks ->
+                                Log.d("TaskListActivity", "Loaded stats for project $projectId: $tasks")
+                                projectProgressAdapter.updateProjectStats(
+                                    projectId,
+                                    ProjectProgressAdapter.ProjectStats(
+                                        running = tasks.running,
+                                        pending = tasks.pending,
+                                        completed = tasks.done,
+                                        total = tasks.total,
+                                        failed = tasks.failed,
+                                        activeSessions = status.activeSessions
                                     )
-                                } ?: holder.showEmptyState()
-                            }
+                                )
+                            } ?: projectProgressAdapter.updateProjectStats(
+                                projectId,
+                                ProjectProgressAdapter.ProjectStats()
+                            )
                         }
                     }
                 }?.onFailure { error ->
-                    // Silent failure - just log for debugging
                     Log.d("TaskListActivity", "Orchestrator status unavailable for project $projectId: ${error.message}")
                     runOnUiThread {
-                        val position = projectProgressAdapter.currentList.indexOfFirst {
-                            it.getProjectId() == projectId
-                        }
-                        if (position >= 0) {
-                            binding.projectsRecyclerView.findViewHolderForAdapterPosition(position)
-                                ?.let { holder ->
-                                    if (holder is ProjectProgressAdapter.ProjectViewHolder) {
-                                        holder.showEmptyState()
-                                    }
-                                }
-                        }
+                        projectProgressAdapter.updateProjectStats(
+                            projectId,
+                            ProjectProgressAdapter.ProjectStats()
+                        )
+                        updateOrchestratorWarning(error.message ?: "Unable to load project status for $projectId.")
                     }
                 }
             }
@@ -345,7 +389,7 @@ class TaskListActivity : AppCompatActivity() {
     private fun viewTaskDetails(task: Task) {
         val intent = Intent(this, TaskDetailActivity::class.java).apply {
             putExtra("task_id", task.taskId)
-            putExtra("session_id", intent.getStringExtra("session_id"))
+            putExtra("session_id", this@TaskListActivity.intent.getStringExtra("session_id"))
         }
         startActivity(intent)
     }

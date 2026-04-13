@@ -19,6 +19,7 @@ class TaskDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTaskDetailBinding
     private lateinit var viewModel: TaskViewModel
     private var currentTask: Task? = null
+    private var sessionId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,10 +27,11 @@ class TaskDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = "Task"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val taskId = intent.getStringExtra("task_id") ?: ""
-        val sessionId = intent.getStringExtra("session_id") ?: ""
+        sessionId = intent.getStringExtra("session_id") ?: ""
 
         setupViewModel(sessionId)
         loadTask(taskId)
@@ -54,7 +56,22 @@ class TaskDetailActivity : AppCompatActivity() {
         viewModel.getTask(taskId)
         viewModel.currentTask.observe(this) { task ->
             currentTask = task
-            task?.let { bindTask(it) }
+            if (task != null) {
+                supportActionBar?.title = task.title
+                bindTask(task)
+            } else {
+                supportActionBar?.title = "Task"
+                binding.taskTitle.text = "Task unavailable"
+                binding.taskDescription.text = "This task could not be loaded from local storage or Orchestrator."
+                binding.taskMetaRow.visibility = android.view.View.GONE
+                binding.taskResult.visibility = android.view.View.GONE
+                binding.taskResultLabel.visibility = android.view.View.GONE
+                binding.taskError.visibility = android.view.View.GONE
+                binding.taskErrorLabel.visibility = android.view.View.GONE
+                binding.approveButton.visibility = android.view.View.GONE
+                binding.rejectButton.visibility = android.view.View.GONE
+                binding.startButton.visibility = android.view.View.GONE
+            }
         }
     }
 
@@ -62,17 +79,42 @@ class TaskDetailActivity : AppCompatActivity() {
         // Update UI elements
         binding.taskTitle.text = task.title
         binding.taskDescription.text = task.description
-        binding.taskPriority.text = task.priority.toString()
         binding.taskTime.text = formatTime(task.createdAt)
+
+        if (task.priority > 0) {
+            binding.taskPriority.text = task.priority.toString()
+            binding.taskPriorityLabel.visibility = android.view.View.VISIBLE
+            binding.taskPriority.visibility = android.view.View.VISIBLE
+        } else {
+            binding.taskPriorityLabel.visibility = android.view.View.GONE
+            binding.taskPriority.visibility = android.view.View.GONE
+        }
+
+        if (task.createdAt > 0L) {
+            binding.taskTime.text = formatTime(task.createdAt)
+            binding.taskTime.visibility = android.view.View.VISIBLE
+        } else {
+            binding.taskTime.visibility = android.view.View.GONE
+        }
+
+        val showMetaRow =
+            binding.taskPriorityLabel.visibility == android.view.View.VISIBLE ||
+                    binding.taskTime.visibility == android.view.View.VISIBLE
+        binding.taskMetaRow.visibility = if (showMetaRow) android.view.View.VISIBLE else android.view.View.GONE
 
         // Update status badge
         updateStatusBadge(task.status)
 
         // Update result and error
-        binding.taskResult.text = task.result ?: "No result yet"
-        binding.taskResult.visibility = if (task.result.isNullOrEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        val hasResult = !task.result.isNullOrBlank()
+        binding.taskResult.text = task.result ?: ""
+        binding.taskResultLabel.visibility = if (hasResult) android.view.View.VISIBLE else android.view.View.GONE
+        binding.taskResult.visibility = if (hasResult) android.view.View.VISIBLE else android.view.View.GONE
+
+        val hasError = !task.error.isNullOrBlank()
         binding.taskError.text = task.error ?: ""
-        binding.taskError.visibility = if (task.error.isNullOrEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        binding.taskErrorLabel.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
+        binding.taskError.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
 
         // Show/hide action buttons based on status
         updateActionButtons(task.status)
@@ -98,6 +140,13 @@ class TaskDetailActivity : AppCompatActivity() {
         val approveBtn = binding.approveButton
         val rejectBtn = binding.rejectButton
         val startBtn = binding.startButton
+
+        if (sessionId.isBlank()) {
+            approveBtn.visibility = android.view.View.GONE
+            rejectBtn.visibility = android.view.View.GONE
+            startBtn.visibility = android.view.View.GONE
+            return
+        }
 
         when (status) {
             TaskStatus.PENDING -> {

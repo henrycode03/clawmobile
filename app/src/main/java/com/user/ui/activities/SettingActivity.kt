@@ -2,13 +2,17 @@ package com.user.ui.activities
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.user.ClawMobileApplication
 import com.user.BuildConfig
+import com.user.R
 import com.user.data.GitConnection
 import com.user.data.PrefsManager
 import com.user.databinding.ActivitySettingsBinding
+import com.user.service.OrchestratorApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,6 +90,10 @@ class SettingsActivity : AppCompatActivity() {
 
         // Always show Orchestrator section so users can configure it
         binding.orchestratorSection.visibility = android.view.View.VISIBLE
+
+        binding.orchestratorTestButton.setOnClickListener {
+            testOrchestratorConnection()
+        }
 
         binding.saveButton.setOnClickListener {
             val serverUrl   = binding.serverUrlInput.text.toString().trim()
@@ -181,6 +189,58 @@ class SettingsActivity : AppCompatActivity() {
         return true
     }
 
+    private fun testOrchestratorConnection() {
+        val orchestratorServerUrl = binding.orchestratorServerUrlInput.text.toString().trim()
+        val gatewayToken = binding.gatewayTokenInput.text.toString().trim()
+        val orchestratorApiKey = binding.orchestratorApiKeyInput.text.toString().trim()
+        val apiKeyToUse = orchestratorApiKey.ifEmpty { gatewayToken }
+
+        if (orchestratorServerUrl.isBlank()) {
+            showOrchestratorTestStatus(getString(R.string.settings_orchestrator_test_missing_url), false)
+            return
+        }
+
+        if (apiKeyToUse.isBlank()) {
+            showOrchestratorTestStatus(getString(R.string.settings_orchestrator_test_missing_key), false)
+            return
+        }
+
+        binding.orchestratorTestButton.isEnabled = false
+        showOrchestratorTestStatus(getString(R.string.settings_orchestrator_test_in_progress), neutral = true)
+
+        val client = OrchestratorApiClient(
+            prefs = prefs,
+            gatewayToken = gatewayToken,
+            overrideServerUrl = orchestratorServerUrl,
+            overrideApiKey = apiKeyToUse
+        )
+
+        CoroutineScope(Dispatchers.Main).launch {
+            client.testConnection().onSuccess { success ->
+                if (success) {
+                    showOrchestratorTestStatus(getString(R.string.settings_orchestrator_test_success), true)
+                } else {
+                    showOrchestratorTestStatus(getString(R.string.settings_orchestrator_test_failed), false)
+                }
+            }.onFailure { error ->
+                val message = error.message ?: getString(R.string.settings_orchestrator_test_failed)
+                showOrchestratorTestStatus(message, false)
+            }
+            binding.orchestratorTestButton.isEnabled = true
+        }
+    }
+
+    private fun showOrchestratorTestStatus(message: String, success: Boolean? = null, neutral: Boolean = false) {
+        binding.orchestratorTestStatus.visibility = View.VISIBLE
+        binding.orchestratorTestStatus.text = message
+        val colorRes = when {
+            neutral -> R.color.timestamp_text
+            success == true -> R.color.status_completed
+            else -> R.color.status_failed
+        }
+        binding.orchestratorTestStatus.setTextColor(ContextCompat.getColor(this, colorRes))
+    }
+
     /**
      * Show a toast with network troubleshooting tips
      */
@@ -195,3 +255,4 @@ class SettingsActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
+

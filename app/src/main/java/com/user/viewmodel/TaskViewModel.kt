@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.user.data.DashboardSummary
 import com.user.data.OrchestTask
+import com.user.data.RecentActivity
 import com.user.data.Task
 import com.user.data.TaskStatus
 import com.user.repository.ChatRepository
@@ -37,6 +38,12 @@ class TaskViewModel(
     // Orchestrator stats
     private val _orchestratorStats = MutableLiveData<DashboardSummary?>(null)
     val orchestratorStats: LiveData<DashboardSummary?> = _orchestratorStats
+
+    private val _recentActivity = MutableLiveData<List<RecentActivity>>(emptyList())
+    val recentActivity: LiveData<List<RecentActivity>> = _recentActivity
+
+    private val _orchestratorWarning = MutableLiveData<String?>(null)
+    val orchestratorWarning: LiveData<String?> = _orchestratorWarning
 
     // Project-specific task stats
     private val _projectTaskStats = mutableMapOf<String, TaskProgress>()
@@ -117,16 +124,19 @@ class TaskViewModel(
             // Log the attempt but don't show errors to user
             Log.d("TaskViewModel", "Attempting to load Orchestrator stats...")
 
-            orchestratorClient.getDashboardSummary().onSuccess { stats ->
-                _orchestratorStats.value = stats
-                if (stats != null) {
-                    Log.d("TaskViewModel", "Successfully loaded Orchestrator stats: $stats")
+            orchestratorClient.getDashboard().onSuccess { dashboard ->
+                _orchestratorStats.value = dashboard.summary
+                _recentActivity.value = dashboard.recentActivity
+                _orchestratorWarning.value = null
+                if (dashboard.summary != null) {
+                    Log.d("TaskViewModel", "Successfully loaded Orchestrator stats: ${dashboard.summary}")
                 } else {
                     Log.w("TaskViewModel", "Orchestrator returned empty stats")
                 }
             }.onFailure { error ->
-                // Silent failure - just log for debugging, don't disrupt UI
-                Log.d("TaskViewModel", "Orchestrator stats unavailable (this is normal when not on same network): ${error.message}")
+                Log.d("TaskViewModel", "Orchestrator stats unavailable: ${error.message}")
+                _orchestratorWarning.value = error.message ?: "Orchestrator stats are currently unavailable."
+                _recentActivity.value = emptyList()
             }
         }
     }
@@ -148,6 +158,7 @@ class TaskViewModel(
 
             // First, get all projects
             orchestratorClient.getProjects().onSuccess { projects ->
+                _orchestratorWarning.value = null
                 Log.d("TaskViewModel", "Fetched ${projects.size} projects from Orchestrator")
 
                 // Fetch tasks for each project
@@ -181,6 +192,7 @@ class TaskViewModel(
                 Log.d("TaskViewModel", "Orchestrator task breakdown - Pending: $pendingCount, In Progress: $inProgressCount, Completed: $completedCount")
             }.onFailure { error ->
                 Log.w("TaskViewModel", "Failed to load Orchestrator tasks: ${error.message}")
+                _orchestratorWarning.value = error.message ?: "Unable to sync tasks from Orchestrator."
             }
         }
     }
@@ -308,10 +320,41 @@ class TaskViewModel(
     fun getTask(taskId: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val task = repository.getTask(taskId)
-                _currentTask.value = task
+                val task = runCatching { repository.getTask(taskId) }.getOrNull()
+                if (task != null) {
+                    _currentTask.value = task
+                    return@launch
+                }
+
+                val cachedTask = _allTasks.value?.firstOrNull { it.taskId == taskId }
+                if (cachedTask != null) {
+                    _currentTask.value = cachedTask
+                    return@launch
+                }
+
+                if (sessionId.isBlank() && orchestratorClient != null) {
+                    orchestratorClient.getProjects().onSuccess { projects ->
+                        var resolvedTask: Task? = null
+                        for (project in projects) {
+                            val result = orchestratorClient.getProjectTasks(project.getProjectId())
+                            result.onSuccess { tasks ->
+                                val match = tasks.firstOrNull { it.taskId == taskId }
+                                if (match != null) {
+                                    resolvedTask = match.toLocalTask(sessionId = sessionId)
+                                }
+                            }
+                            if (resolvedTask != null) {
+                                break
+                            }
+                        }
+                        _currentTask.value = resolvedTask
+                    }.onFailure { error ->
+                        Log.w("TaskViewModel", "Failed to resolve Orchestrator task $taskId: ${error.message}")
+                        _currentTask.value = null
+                    }
+                }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("TaskViewModel", "Failed to load task $taskId", e)
             }
         }
     }
@@ -329,3 +372,4 @@ class TaskViewModel(
         return liveData
     }
 }
+

@@ -31,6 +31,11 @@
     <string name="settings_orchestrator_url">Orchestrator Server URL</string>
     <string name="settings_orchestrator_api_key">API Key</string>
     <string name="settings_orchestrator_test">Test Connection</string>
+    <string name="settings_orchestrator_test_in_progress">Testing Orchestrator connection…</string>
+    <string name="settings_orchestrator_test_success">Connected to Orchestrator successfully.</string>
+    <string name="settings_orchestrator_test_failed">Could not connect to Orchestrator.</string>
+    <string name="settings_orchestrator_test_missing_url">Enter an Orchestrator URL first.</string>
+    <string name="settings_orchestrator_test_missing_key">Enter an API key or Gateway Token first.</string>
 
     <!-- Settings Activity -->
     <string name="settings_gateway_title">GX10 OpenClaw Gateway</string>

@@ -43,8 +43,9 @@ class GatewayClient(
     }
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(6, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS)
+        .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
     private var webSocket: WebSocket? = null
@@ -137,7 +138,7 @@ class GatewayClient(
 
     private fun scheduleReconnect() {
         if (!shouldReconnect || reconnectAttempts >= 5) return
-        val delay = (reconnectAttempts + 1) * 3000L
+        val delay = minOf(1500L * (reconnectAttempts + 1), 6000L)
         reconnectAttempts++
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             if (shouldReconnect) {
@@ -172,7 +173,7 @@ class GatewayClient(
             }
             connectFallbackTimer = handler
             connectFallbackRunnable = runnable
-            handler.postDelayed(runnable, 2000)
+            handler.postDelayed(runnable, 600)
         }
 
         override fun onMessage(ws: WebSocket, text: String) {
