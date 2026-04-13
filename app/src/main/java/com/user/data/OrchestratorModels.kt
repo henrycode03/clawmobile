@@ -25,7 +25,7 @@ data class DashboardSummary(
 
 data class DashboardResponse(
     val summary: DashboardSummary? = null,
-    @SerializedName("recentActivity")
+    @SerializedName("recent_activity")
     val recentActivity: List<RecentActivity> = emptyList()
 )
 
@@ -156,11 +156,23 @@ data class OrchestratorApiResponse<T>(
  * Response wrapper for project status endpoint
  */
 data class ProjectStatusResponse(
-    val projectId: String,
-    val projectName: String,
+    @SerializedName("project_id")
+    val projectId: String = "",
+    @SerializedName("project_name")
+    val projectName: String = "",
     val description: String? = null,
+    @SerializedName("active_sessions")
     val activeSessions: Int = 0,
-    val tasks: TaskStatsResponse? = null
+    val tasks: TaskStatsResponse? = null,
+    val sessions: List<ProjectSessionSummary> = emptyList()
+)
+
+data class ProjectSessionSummary(
+    val id: Int = 0,
+    val name: String = "",
+    val status: String = "",
+    @SerializedName("started_at")
+    val startedAt: String? = null
 )
 
 /**

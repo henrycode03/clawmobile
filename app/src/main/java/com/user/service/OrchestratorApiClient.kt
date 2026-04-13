@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.user.data.DashboardResponse
 import com.user.data.DashboardSummary
+import com.user.data.RecentActivity
 import com.user.data.OrchestTask
 import com.user.data.OrchestTaskResponse
 import com.user.data.MobileProjectsResponse
@@ -19,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
+import java.net.SocketTimeoutException
 
 /**
  * Orchestrator API client for fetching project and task statistics
@@ -34,7 +37,9 @@ import okhttp3.Request
  */
 class OrchestratorApiClient(
     private val prefs: PrefsManager,
-    private val gatewayToken: String
+    private val gatewayToken: String,
+    private val overrideServerUrl: String? = null,
+    private val overrideApiKey: String? = null
 ) {
     private companion object {
         private const val TAG = "OrchestratorApiClient"
@@ -70,26 +75,51 @@ class OrchestratorApiClient(
     private val gson = Gson()
 
     private fun getBaseUrl(): String {
-        // Use URL as-is without modification - let okhttp3 handle trailing slashes in URL concatenation
-        val baseUrl = prefs.orchestratorServerUrl.trimEnd('/')
-        return baseUrl
+        val rawBaseUrl = (overrideServerUrl ?: prefs.orchestratorServerUrl).trim().trimEnd('/')
+        return when {
+            rawBaseUrl.endsWith("/api/v1") -> rawBaseUrl.removeSuffix("/api/v1")
+            rawBaseUrl.endsWith("/mobile") -> rawBaseUrl.removeSuffix("/mobile")
+            else -> rawBaseUrl
+        }
+    }
+
+    private fun buildMobileUrl(path: String): String {
+        val normalizedPath = path.trimStart('/')
+        return "${getBaseUrl()}/api/v1/mobile/$normalizedPath"
+    }
+
+    private fun <T> buildFailure(message: String, exception: Exception? = null): Result<T> {
+        val rootCause = exception?.message?.takeIf { it.isNotBlank() }
+        val detail = when (exception) {
+            is SocketTimeoutException -> "Request timed out. Check if Orchestrator is reachable."
+            is IOException -> "Unable to reach Orchestrator. Check the server URL, network, and backend status."
+            else -> rootCause
+        }
+
+        val fullMessage = if (detail != null && detail != message) {
+            "$message $detail"
+        } else {
+            message
+        }
+
+        return Result.failure(Exception(fullMessage, exception))
     }
 
     private fun getHeaders(): Map<String, String> {
         return mapOf(
             "Content-Type" to "application/json",
-            "X-OpenClaw-API-Key" to prefs.orchestratorApiKey,
+            "X-OpenClaw-API-Key" to (overrideApiKey ?: prefs.orchestratorApiKey),
             "Authorization" to "Bearer $gatewayToken"
         )
     }
 
     /**
-     * Fetch dashboard summary (project count, task stats, session stats)
+     * Fetch full dashboard payload including recent activity.
      */
-    suspend fun getDashboardSummary(): Result<DashboardSummary> = withContext(Dispatchers.IO) {
+    suspend fun getDashboard(): Result<DashboardResponse> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/api/v1/mobile/dashboard"
-            Log.d(TAG, "Fetching dashboard summary from: $url")
+            val url = buildMobileUrl("dashboard")
+            Log.d(TAG, "Fetching full dashboard payload from: $url")
 
             val request = Request.Builder()
                 .url(url)
@@ -100,28 +130,38 @@ class OrchestratorApiClient(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Dashboard API failed: ${response.code} ${response.message}")
-                    return@withContext Result.failure(
-                        Exception("Dashboard API failed: ${response.code} ${response.message}")
+                    return@withContext buildFailure(
+                        "Dashboard API failed (${response.code} ${response.message})."
                     )
                 }
 
                 val responseBody = response.body?.string() ?: throw Exception("Empty response")
-
-                // Parse the response
                 val apiResponse = gson.fromJson(responseBody, DashboardResponse::class.java)
 
                 if (apiResponse.summary != null) {
-                    Log.d(TAG, "Successfully fetched dashboard summary: $apiResponse")
-                    Result.success(apiResponse.summary)
+                    Result.success(apiResponse)
                 } else {
-                    Log.w(TAG, "No summary data in response")
-                    Result.failure(Exception("No summary data in response"))
+                    buildFailure("Dashboard response did not include summary data.")
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Error fetching dashboard summary: ${e.message}")
-            Result.failure(e)
+            Log.w(TAG, "Error fetching full dashboard payload: ${e.message}")
+            buildFailure("Failed to load Orchestrator dashboard.", e)
         }
+    }
+
+    /**
+     * Fetch dashboard summary (project count, task stats, session stats)
+     */
+    suspend fun getDashboardSummary(): Result<DashboardSummary> = withContext(Dispatchers.IO) {
+        getDashboard().fold(
+            onSuccess = { dashboard ->
+                Result.success(dashboard.summary!!)
+            },
+            onFailure = { error ->
+                Result.failure(error)
+            }
+        )
     }
 
     /**
@@ -129,7 +169,7 @@ class OrchestratorApiClient(
      */
     suspend fun getProjects(): Result<List<Project>> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/api/v1/mobile/projects"
+            val url = buildMobileUrl("projects")
             Log.d(TAG, "Fetching projects from: $url")
 
             val request = Request.Builder()
@@ -141,8 +181,8 @@ class OrchestratorApiClient(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Projects API failed: ${response.code} ${response.message}")
-                    return@withContext Result.failure(
-                        Exception("Projects API failed: ${response.code} ${response.message}")
+                    return@withContext buildFailure(
+                        "Projects API failed (${response.code} ${response.message})."
                     )
                 }
 
@@ -168,12 +208,12 @@ class OrchestratorApiClient(
                     Result.success(apiResponse.data)
                 } else {
                     Log.w(TAG, "Projects API error: success=${apiResponse.success}, data=${apiResponse.data}, error=${apiResponse.error}")
-                    Result.failure(Exception(apiResponse.error ?: "Unknown error"))
+                    buildFailure(apiResponse.error ?: "Projects response was missing usable data.")
                 }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching projects: ${e.message}")
-            Result.failure(e)
+            buildFailure("Failed to load Orchestrator projects.", e)
         }
     }
 
@@ -182,7 +222,7 @@ class OrchestratorApiClient(
      */
     suspend fun getProjectTasks(projectId: String): Result<List<OrchestTask>> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/api/v1/mobile/projects/${projectId}/tasks"
+            val url = buildMobileUrl("projects/${projectId}/tasks")
             Log.d(TAG, "Fetching tasks for project $projectId from: $url")
 
             val request = Request.Builder()
@@ -194,8 +234,8 @@ class OrchestratorApiClient(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Tasks API failed for project $projectId: ${response.code} ${response.message}")
-                    return@withContext Result.failure(
-                        Exception("Tasks API failed: ${response.code} ${response.message}")
+                    return@withContext buildFailure(
+                        "Tasks API failed for project $projectId (${response.code} ${response.message})."
                     )
                 }
 
@@ -204,19 +244,14 @@ class OrchestratorApiClient(
                 // Parse the response - it's in format { "project_id": N, "tasks": [...], "total": N }
                 val projectTasksResponse = gson.fromJson(responseBody, ProjectTasksResponse::class.java)
 
-                if (projectTasksResponse.tasks != null) {
-                    // Convert from OrchestTaskResponse to OrchestTask
-                    val tasks = projectTasksResponse.tasks.map { it.toOrchestTask() }
-                    Log.d(TAG, "Successfully fetched ${tasks.size} tasks for project $projectId")
-                    Result.success(tasks)
-                } else {
-                    Log.w(TAG, "Tasks API error for project $projectId: No tasks in response")
-                    Result.failure(Exception("No tasks in response"))
-                }
+                // Convert from OrchestTaskResponse to OrchestTask
+                val tasks = projectTasksResponse.tasks.map { it.toOrchestTask() }
+                Log.d(TAG, "Successfully fetched ${tasks.size} tasks for project $projectId")
+                Result.success(tasks)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching tasks for project $projectId: ${e.message}")
-            Result.failure(e)
+            buildFailure("Failed to load tasks for project $projectId.", e)
         }
     }
 
@@ -242,7 +277,7 @@ class OrchestratorApiClient(
      */
     suspend fun getProjectStatus(projectId: String): Result<ProjectStatusResponse> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/mobile/projects/${projectId}/status"
+            val url = buildMobileUrl("projects/${projectId}/status")
             Log.d(TAG, "Fetching status for project $projectId from: $url")
 
             val request = Request.Builder()
@@ -254,8 +289,8 @@ class OrchestratorApiClient(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Project status API failed for $projectId: ${response.code} ${response.message}")
-                    return@withContext Result.failure(
-                        Exception("Project status API failed: ${response.code} ${response.message}")
+                    return@withContext buildFailure(
+                        "Project status API failed for $projectId (${response.code} ${response.message})."
                     )
                 }
 
@@ -267,38 +302,39 @@ class OrchestratorApiClient(
                 if (jsonObject.has("project_id")) {
                     val taskStatsJson = jsonObject.getAsJsonObject("tasks")
                     val taskStats = TaskStatsResponse(
-                        total = taskStatsJson.get("total")?.asInt ?: 0,
-                        pending = taskStatsJson.get("pending")?.asInt ?: 0,
-                        running = taskStatsJson.get("running")?.asInt ?: 0,
-                        done = taskStatsJson.get("done")?.asInt ?: 0,
-                        failed = taskStatsJson.get("failed")?.asInt ?: 0
+                        total = taskStatsJson?.get("total")?.takeUnless { it.isJsonNull }?.asInt ?: 0,
+                        pending = taskStatsJson?.get("pending")?.takeUnless { it.isJsonNull }?.asInt ?: 0,
+                        running = taskStatsJson?.get("running")?.takeUnless { it.isJsonNull }?.asInt ?: 0,
+                        done = taskStatsJson?.get("done")?.takeUnless { it.isJsonNull }?.asInt ?: 0,
+                        failed = taskStatsJson?.get("failed")?.takeUnless { it.isJsonNull }?.asInt ?: 0
                     )
 
                     Log.d(TAG, "Successfully fetched status for project $projectId: $taskStats")
                     Result.success(ProjectStatusResponse(
-                        projectId = jsonObject.get("project_id").asInt.toString(),
-                        projectName = jsonObject.get("project_name").asString,
-                        description = if (jsonObject.has("description")) jsonObject.get("description").asString else null,
-                        activeSessions = jsonObject.get("active_sessions")?.asInt ?: 0,
+                        projectId = jsonObject.get("project_id")?.takeUnless { it.isJsonNull }?.asInt?.toString() ?: projectId,
+                        projectName = jsonObject.get("project_name")?.takeUnless { it.isJsonNull }?.asString ?: "Project",
+                        description = jsonObject.get("description")?.takeUnless { it.isJsonNull }?.asString,
+                        activeSessions = jsonObject.get("active_sessions")?.takeUnless { it.isJsonNull }?.asInt ?: 0,
                         tasks = taskStats
                     ))
                 } else {
                     Log.w(TAG, "Unexpected response format for project $projectId - missing project_id")
-                    Result.failure(Exception("Unexpected response format - missing project_id"))
+                    buildFailure("Project status response for $projectId was missing project_id.")
                 }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching status for project $projectId: ${e.message}")
-            Result.failure(e)
+            buildFailure("Failed to load project status for $projectId.", e)
         }
     }
 
     /**
      * Fetch tasks filtered by status
      */
+    @Suppress("unused")
     suspend fun getTasksByStatus(projectId: String, status: String): Result<List<OrchestTask>> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/api/v1/mobile/projects/${projectId}/tasks?status=$status"
+            val url = buildMobileUrl("projects/${projectId}/tasks?status=$status")
             Log.d(TAG, "Fetching filtered tasks for project $projectId with status $status")
 
             val request = Request.Builder()
@@ -310,8 +346,8 @@ class OrchestratorApiClient(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Tasks API failed for project $projectId (status=$status): ${response.code} ${response.message}")
-                    return@withContext Result.failure(
-                        Exception("Tasks API failed: ${response.code} ${response.message}")
+                    return@withContext buildFailure(
+                        "Filtered tasks API failed for project $projectId (${response.code} ${response.message})."
                     )
                 }
 
@@ -320,21 +356,16 @@ class OrchestratorApiClient(
                 // Parse the response - it's in format { "project_id": N, "tasks": [...], "total": N }
                 val projectTasksResponse = gson.fromJson(responseBody, ProjectTasksResponse::class.java)
 
-                if (projectTasksResponse.tasks != null) {
-                    // Convert from OrchestTaskResponse to OrchestTask and filter by status
-                    val tasks = projectTasksResponse.tasks
-                        .map { it.toOrchestTask() }
-                        .filter { it.status == status.lowercase() }
-                    Log.d(TAG, "Successfully fetched ${tasks.size} tasks for project $projectId (status=$status)")
-                    Result.success(tasks)
-                } else {
-                    Log.w(TAG, "Tasks API error for project $projectId: No tasks in response")
-                    Result.failure(Exception("No tasks in response"))
-                }
+                // Convert from OrchestTaskResponse to OrchestTask and filter by status
+                val tasks = projectTasksResponse.tasks
+                    .map { it.toOrchestTask() }
+                    .filter { it.status == status.lowercase() }
+                Log.d(TAG, "Successfully fetched ${tasks.size} tasks for project $projectId (status=$status)")
+                Result.success(tasks)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching filtered tasks for project $projectId: ${e.message}")
-            Result.failure(e)
+            buildFailure("Failed to load filtered tasks for project $projectId.", e)
         }
     }
 
@@ -348,7 +379,7 @@ class OrchestratorApiClient(
      */
     suspend fun testConnection(): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val url = "${getBaseUrl()}/api/v1/mobile/dashboard"
+            val url = buildMobileUrl("dashboard")
             Log.d(TAG, "Testing connection to Orchestrator: $url")
 
             val request = Request.Builder()
@@ -364,7 +395,7 @@ class OrchestratorApiClient(
             }
         } catch (e: Exception) {
             Log.w(TAG, "Connection test failed: ${e.message}")
-            Result.failure(e)
+            buildFailure("Orchestrator connection test failed.", e)
         }
     }
 }

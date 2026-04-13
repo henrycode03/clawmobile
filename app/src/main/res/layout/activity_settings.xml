@@ -191,6 +191,26 @@
                     android:paddingTop="4dp"
                     android:paddingBottom="8dp" />
 
+                <Button
+                    android:id="@+id/orchestratorTestButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/settings_orchestrator_test"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:id="@+id/orchestratorTestStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="488dp"
+                    android:layout_gravity="center_horizontal"
+                    android:textColor="@color/timestamp_text"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp" />
+
             </LinearLayout>
 
             <!-- GitHub Integration -->

@@ -18,6 +18,17 @@ class ProjectProgressAdapter(
     private val onProjectClickListener: ((Project) -> Unit)? = null
 ) : ListAdapter<Project, ProjectProgressAdapter.ProjectViewHolder>(ProjectDiffCallback()) {
 
+    data class ProjectStats(
+        val running: Int = 0,
+        val pending: Int = 0,
+        val completed: Int = 0,
+        val total: Int = 0,
+        val failed: Int = 0,
+        val activeSessions: Int = 0
+    )
+
+    private val statsByProjectId = mutableMapOf<String, ProjectStats>()
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProjectViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_project_progress, parent, false)
@@ -25,26 +36,42 @@ class ProjectProgressAdapter(
     }
 
     override fun onBindViewHolder(holder: ProjectViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val project = getItem(position)
+        holder.bind(project, statsByProjectId[project.getProjectId()])
+    }
+
+    fun updateProjectStats(projectId: String, stats: ProjectStats) {
+        statsByProjectId[projectId] = stats
+        val index = currentList.indexOfFirst { it.getProjectId() == projectId }
+        if (index >= 0) {
+            notifyItemChanged(index)
+        }
     }
 
     inner class ProjectViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val projectName: TextView = itemView.findViewById(R.id.projectName)
+        private val projectStatusSummary: TextView = itemView.findViewById(R.id.projectStatusSummary)
         private val projectRunningCount: TextView = itemView.findViewById(R.id.projectRunningCount)
         private val projectPendingCount: TextView = itemView.findViewById(R.id.projectPendingCount)
         private val projectCompletedCount: TextView = itemView.findViewById(R.id.projectCompletedCount)
+        private val projectFailedCount: TextView = itemView.findViewById(R.id.projectFailedCount)
         private val projectProgressBar: ProgressBar = itemView.findViewById(R.id.projectProgressBar)
 
-        fun bind(project: Project) {
+        fun bind(project: Project, stats: ProjectStats?) {
             projectName.text = project.name
 
-            // Set empty state initially (will be updated by loadProjectTaskCounts)
-            projectRunningCount.text = "0"
-            projectPendingCount.text = "0"
-            projectCompletedCount.text = "0"
-
-            // Hide progress bar for static view
-            projectProgressBar.visibility = View.GONE
+            if (stats != null) {
+                updateWithStats(
+                    running = stats.running,
+                    pending = stats.pending,
+                    completed = stats.completed,
+                    total = stats.total,
+                    failed = stats.failed,
+                    activeSessions = stats.activeSessions
+                )
+            } else {
+                showEmptyState()
+            }
 
             // Click handler
             itemView.setOnClickListener {
@@ -52,13 +79,29 @@ class ProjectProgressAdapter(
             }
         }
 
-        fun updateWithStats(running: Int, pending: Int, completed: Int, total: Int) {
+        fun updateWithStats(
+            running: Int,
+            pending: Int,
+            completed: Int,
+            total: Int,
+            failed: Int,
+            activeSessions: Int
+        ) {
             // Using a temporary variable to avoid re-appending if called multiple times
             val baseName = projectName.text.toString().substringBefore(" (")
             projectName.text = "$baseName ($total tasks)"
             projectRunningCount.text = running.toString()
             projectPendingCount.text = pending.toString()
             projectCompletedCount.text = completed.toString()
+            projectFailedCount.text = failed.toString()
+
+            projectStatusSummary.text = when {
+                failed > 0 -> "$failed failed • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
+                running > 0 -> "Active now • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
+                pending > 0 -> "Waiting on $pending task${if (pending == 1) "" else "s"}"
+                total == 0 -> "No tasks yet"
+                else -> "Healthy • $completed completed"
+            }
 
             // Calculate completion percentage if we have total tasks
             if (total > 0) {
@@ -76,6 +119,8 @@ class ProjectProgressAdapter(
             projectRunningCount.text = "0"
             projectPendingCount.text = "0"
             projectCompletedCount.text = "0"
+            projectFailedCount.text = "0"
+            projectStatusSummary.text = "No execution data yet"
             projectProgressBar.visibility = View.GONE
         }
     }

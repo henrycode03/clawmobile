@@ -20,25 +20,20 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".ui.activities.SplashActivity"
+            android:name=".ui.activities.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:theme="@style/Theme.App.Starting"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.activities.MainActivity"
-            android:exported="true"
-            android:parentActivityName=".ui.activities.SessionsActivity"
-            android:windowSoftInputMode="adjustResize">
-        </activity>
-
         <activity android:name=".ui.activities.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.activities.SessionsActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskListActivity" android:exported="false" />
+        <activity android:name=".ui.tasks.ProjectDetailActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskDetailActivity" android:exported="false" />
         <activity android:name=".ui.tools.GitHubActivity" android:exported="false" />
 
@@ -61,5 +56,3 @@
     </application>
 
 </manifest>
-
-

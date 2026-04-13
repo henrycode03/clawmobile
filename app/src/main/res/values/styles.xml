@@ -66,6 +66,13 @@
         <item name="cornerSize">12dp</item>
     </style>
 
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.OpenClawMobileAssistant</item>
+    </style>
+
     <style name="ShapeAppearanceOverlay.OpenClaw.UserBubble" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopLeft">18dp</item>
