@@ -1,0 +1,316 @@
+package com.user.ui.tasks
+
+import android.os.Bundle
+import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import com.google.android.material.snackbar.Snackbar
+import com.user.ClawMobileApplication
+import com.user.R
+import com.user.data.MobileCheckpointListResponse
+import com.user.data.MobileSessionSummaryResponse
+import com.user.data.RecentActivity
+import com.user.databinding.ActivitySessionDetailBinding
+import com.user.service.OrchestratorApiClient
+import com.user.ui.FailureSummary
+import com.user.ui.OutputHighlighter
+import com.user.ui.TimeFormatUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class SessionDetailActivity : AppCompatActivity() {
+
+    private enum class LogFilter {
+        ALL,
+        ERRORS,
+        PHASES,
+        CHECKPOINTS
+    }
+
+    private lateinit var binding: ActivitySessionDetailBinding
+    private var orchestratorClient: OrchestratorApiClient? = null
+    private var sessionId: String = ""
+    private var sessionName: String = "Session"
+    private var currentLogFilter: LogFilter = LogFilter.ALL
+    private var latestLogs: List<RecentActivity> = emptyList()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivitySessionDetailBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        sessionId = intent.getStringExtra("session_id") ?: ""
+        sessionName = intent.getStringExtra("session_name") ?: "Session"
+
+        val app = application as ClawMobileApplication
+        if (app.prefsManager.isOrchestratorConfigured()) {
+            orchestratorClient = OrchestratorApiClient(
+                prefs = app.prefsManager,
+                gatewayToken = app.prefsManager.gatewayToken
+            )
+        }
+
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = sessionName
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        binding.refreshButton.setOnClickListener { loadSessionData(showToast = true) }
+        binding.resumeButton.setOnClickListener { resumeSession() }
+        binding.stopButton.setOnClickListener { stopSession() }
+        binding.logFilterAllButton.setOnClickListener { setLogFilter(LogFilter.ALL) }
+        binding.logFilterErrorsButton.setOnClickListener { setLogFilter(LogFilter.ERRORS) }
+        binding.logFilterOrchestrationButton.setOnClickListener { setLogFilter(LogFilter.PHASES) }
+        binding.logFilterCheckpointButton.setOnClickListener { setLogFilter(LogFilter.CHECKPOINTS) }
+        setLogFilter(LogFilter.ALL)
+
+        loadSessionData(showToast = false)
+    }
+
+    private fun loadSessionData(showToast: Boolean) {
+        val client = orchestratorClient ?: run {
+            binding.sessionSummary.text = "Orchestrator is not configured on this device."
+            return
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            client.getSessionSummary(sessionId).onSuccess { summary ->
+                bindSummary(summary)
+                if (showToast) {
+                    Snackbar.make(binding.root, "Session refreshed", Snackbar.LENGTH_SHORT).show()
+                }
+            }.onFailure { error ->
+                binding.sessionSummary.text = error.message ?: "Unable to load session summary."
+            }
+
+            client.getSessionCheckpoints(sessionId).onSuccess { checkpoints ->
+                bindCheckpoints(checkpoints)
+            }.onFailure { error ->
+                binding.checkpointSummaryView.text = error.message ?: "Unable to load checkpoints."
+                binding.checkpointListView.text = ""
+            }
+        }
+    }
+
+    private fun bindSummary(summary: MobileSessionSummaryResponse) {
+        binding.sessionStatusBadge.text = summary.status.uppercase()
+        val badgeRes = when (summary.status.lowercase()) {
+            "running" -> R.drawable.badge_running
+            "paused" -> R.drawable.badge_pending
+            "stopped" -> R.drawable.badge_timeout
+            "completed" -> R.drawable.badge_completed
+            else -> R.drawable.badge_pending
+        }
+        binding.sessionStatusBadge.setBackgroundResource(badgeRes)
+
+        val progress = summary.taskProgress
+        binding.sessionSummary.text = when {
+            progress == null -> "No task progress available yet"
+            progress.failed > 0 -> "${progress.failed} failed • ${progress.running} running • ${progress.done} done"
+            progress.running > 0 -> "${progress.running} running • ${progress.pending} pending"
+            progress.done > 0 -> "${progress.done} done • ${progress.pending} pending"
+            else -> "No task activity yet"
+        }
+        binding.sessionStartedAt.text = TimeFormatUtils.formatApiTimestamp(summary.startedAt)
+            ?.let { "Started: $it" }
+            ?: "Started time unavailable"
+        binding.taskProgressView.text = progress?.let {
+            "Total: ${it.total} • Pending: ${it.pending} • Running: ${it.running} • Done: ${it.done} • Failed: ${it.failed}"
+        } ?: "No task progress available."
+
+        latestLogs = summary.recentLogs
+        renderRecentLogs()
+
+        val failureSummary = if (
+            summary.status.equals("failed", true) ||
+            summary.status.equals("stopped", true) ||
+            progress?.failed ?: 0 > 0
+        ) {
+            FailureSummary.summarizeSessionFailure(summary.recentLogs.map { it.message })
+        } else {
+            null
+        }
+        binding.sessionFailureSummaryView.text = failureSummary.orEmpty()
+        binding.sessionFailureCard.visibility =
+            if (failureSummary.isNullOrBlank()) View.GONE else View.VISIBLE
+
+        binding.resumeButton.visibility =
+            if (summary.status.equals("paused", true) || summary.status.equals("stopped", true)) View.VISIBLE else View.GONE
+        binding.stopButton.visibility =
+            if (summary.status.equals("running", true) || summary.status.equals("paused", true)) View.VISIBLE else View.GONE
+    }
+
+    private fun bindCheckpoints(checkpoints: MobileCheckpointListResponse) {
+        val bestCheckpoint = checkpoints.checkpoints.firstOrNull { checkpoint ->
+            checkpoint.name.contains("latest", ignoreCase = true) ||
+                    checkpoint.name.contains("stopped", ignoreCase = true)
+        } ?: checkpoints.checkpoints.lastOrNull()
+
+        binding.checkpointSummaryView.text = if (checkpoints.totalCount > 0) {
+            val bestLabel = bestCheckpoint?.let { checkpoint ->
+                val stepSuffix = checkpoint.stepIndex?.let { " at step $it" } ?: ""
+                "\nBest resume point: ${checkpoint.name}$stepSuffix"
+            }.orEmpty()
+            "${checkpoints.totalCount} checkpoint(s) available for resume$bestLabel"
+        } else {
+            "No checkpoints available yet"
+        }
+        binding.checkpointListView.text = if (checkpoints.checkpoints.isEmpty()) {
+            ""
+        } else {
+            checkpoints.checkpoints.takeLast(6).joinToString("\n") { checkpoint ->
+                val stepSuffix = checkpoint.stepIndex?.let { " • step $it" } ?: ""
+                "${checkpoint.name}$stepSuffix"
+            }
+        }
+    }
+
+    private fun stopSession() {
+        val client = orchestratorClient ?: return
+        AlertDialog.Builder(this)
+            .setTitle("Stop Session")
+            .setMessage("Stop this running session now? You can resume later if a useful checkpoint exists.")
+            .setPositiveButton("Stop") { _, _ ->
+                CoroutineScope(Dispatchers.Main).launch {
+                    client.stopSession(sessionId).onSuccess {
+                        Snackbar.make(binding.root, it.message.ifBlank { "Session stop requested" }, Snackbar.LENGTH_SHORT).show()
+                        loadSessionData(showToast = false)
+                    }.onFailure { error ->
+                        Snackbar.make(binding.root, error.message ?: "Failed to stop session", Snackbar.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun resumeSession() {
+        val client = orchestratorClient ?: return
+        CoroutineScope(Dispatchers.Main).launch {
+            client.resumeSession(sessionId).onSuccess {
+                Snackbar.make(binding.root, it.message.ifBlank { "Session resume requested" }, Snackbar.LENGTH_SHORT).show()
+                loadSessionData(showToast = false)
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to resume session", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun setLogFilter(filter: LogFilter) {
+        currentLogFilter = filter
+        styleFilterButton(binding.logFilterAllButton, filter == LogFilter.ALL)
+        styleFilterButton(binding.logFilterErrorsButton, filter == LogFilter.ERRORS)
+        styleFilterButton(binding.logFilterOrchestrationButton, filter == LogFilter.PHASES)
+        styleFilterButton(binding.logFilterCheckpointButton, filter == LogFilter.CHECKPOINTS)
+        renderRecentLogs()
+    }
+
+    private fun styleFilterButton(button: com.google.android.material.button.MaterialButton, selected: Boolean) {
+        button.isEnabled = !selected
+        if (selected) {
+            button.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
+            button.setTextColor(ContextCompat.getColor(this, R.color.white))
+            button.strokeWidth = 0
+        } else {
+            button.setBackgroundColor(ContextCompat.getColor(this, R.color.surface))
+            button.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            button.strokeWidth = 2
+            button.strokeColor = android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.border)
+            )
+        }
+    }
+
+    private fun renderRecentLogs() {
+        val filteredLogs = latestLogs
+            .asReversed()
+            .filter { log ->
+                when (currentLogFilter) {
+                    LogFilter.ALL -> true
+                    LogFilter.ERRORS -> {
+                        log.level.equals("ERROR", true) ||
+                                log.message.contains("failed", true) ||
+                                log.message.contains("error", true) ||
+                                log.message.contains("timeout", true)
+                    }
+                    LogFilter.PHASES -> {
+                        log.message.contains("[ORCHESTRATION]", true) ||
+                                log.message.contains("phase", true) ||
+                                log.message.contains("planning", true) ||
+                                log.message.contains("executing", true) ||
+                                log.message.contains("debugging", true)
+                    }
+                    LogFilter.CHECKPOINTS -> {
+                        log.message.contains("[CHECKPOINT]", true) ||
+                                log.message.contains("checkpoint", true) ||
+                                log.message.contains("resume", true)
+                    }
+                }
+            }
+            .take(12)
+
+        val rendered = if (filteredLogs.isEmpty()) {
+            when (currentLogFilter) {
+                LogFilter.ALL -> "No recent logs yet."
+                LogFilter.ERRORS -> "No recent error logs."
+                LogFilter.PHASES -> "No orchestration phase logs yet."
+                LogFilter.CHECKPOINTS -> "No checkpoint or resume logs yet."
+            }
+        } else {
+            filteredLogs
+                .groupBy { classifyPhase(it) }
+                .entries
+                .joinToString("\n\n") { (phase, logs) ->
+                    buildString {
+                        append("=== ")
+                        append(phase)
+                        append(" ===")
+                        append("\n\n")
+                        append(
+                            logs.joinToString("\n\n") { log ->
+                                val timestamp = TimeFormatUtils.formatApiTimestamp(log.timestamp)
+                                    ?: log.timestamp.takeIf { it.isNotBlank() }
+                                    ?: "Recent"
+                                "$timestamp\n[${log.level}] ${log.message}"
+                            }
+                        )
+                    }
+                }
+        }
+
+        binding.logTimelineHint.text = when (currentLogFilter) {
+            LogFilter.ALL -> "Newest first. Grouped by phase so the run is easier to follow."
+            LogFilter.ERRORS -> "Newest errors first. Use this when you only want blockers."
+            LogFilter.PHASES -> "Planning, executing, debugging, and completion events grouped together."
+            LogFilter.CHECKPOINTS -> "Checkpoint and resume activity grouped for recovery review."
+        }
+        binding.recentLogsView.text = OutputHighlighter.render(this, rendered)
+    }
+
+    private fun classifyPhase(log: RecentActivity): String {
+        val message = log.message.lowercase()
+        return when {
+            message.contains("[checkpoint]") || message.contains("checkpoint") || message.contains("resume") ->
+                "Checkpoint / Resume"
+            message.contains("phase 1") || message.contains("planning") ->
+                "Planning"
+            message.contains("phase 2") || message.contains("executing") || message.contains("step ") ->
+                "Executing"
+            message.contains("phase 3") || message.contains("debugging") || message.contains("fix") ->
+                "Debugging"
+            message.contains("phase 4") || message.contains("revis") ->
+                "Plan Revision"
+            message.contains("completed successfully") || message.contains("phase 5") || message.contains("done") ->
+                "Completed"
+            log.level.equals("ERROR", true) || message.contains("failed") || message.contains("error") || message.contains("timeout") ->
+                "Errors"
+            else -> "Recent Activity"
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
+    }
+}

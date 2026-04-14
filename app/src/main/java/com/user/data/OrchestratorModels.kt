@@ -189,6 +189,46 @@ data class ProjectTreeResponse(
     val truncated: Boolean = false
 )
 
+data class MobileSessionSummaryResponse(
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    val name: String = "",
+    val status: String = "",
+    @SerializedName("is_active")
+    val isActive: Boolean = false,
+    @SerializedName("started_at")
+    val startedAt: String? = null,
+    @SerializedName("task_progress")
+    val taskProgress: TaskStatsResponse? = null,
+    @SerializedName("recent_logs")
+    val recentLogs: List<RecentActivity> = emptyList()
+)
+
+data class MobileCheckpoint(
+    val name: String = "",
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+    @SerializedName("step_index")
+    val stepIndex: Int? = null,
+    @SerializedName("completed_steps")
+    val completedSteps: Int = 0
+)
+
+data class MobileCheckpointListResponse(
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    @SerializedName("total_count")
+    val totalCount: Int = 0,
+    val checkpoints: List<MobileCheckpoint> = emptyList()
+)
+
+data class MobileSessionActionResponse(
+    val status: String = "",
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    val message: String = ""
+)
+
 /**
  * Task statistics for project status response
  */

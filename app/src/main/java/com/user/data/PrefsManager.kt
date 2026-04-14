@@ -9,6 +9,10 @@ private const val PREFS_TAG = "PrefsManager"
 class PrefsManager(context: Context) {
     private val prefs = context.getSharedPreferences("openclaw_prefs", Context.MODE_PRIVATE)
 
+    var onboardingCompleted: Boolean
+        get() = prefs.getBoolean("onboarding_completed", false)
+        set(value) = prefs.edit().putBoolean("onboarding_completed", value).apply()
+
     // The default comes from local.properties
     var serverUrl: String
         get() = prefs.getString("server_url", BuildConfig.DEFAULT_SERVER_URL)

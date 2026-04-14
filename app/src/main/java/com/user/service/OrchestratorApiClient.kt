@@ -9,6 +9,9 @@ import com.user.data.RecentActivity
 import com.user.data.OrchestTask
 import com.user.data.OrchestTaskResponse
 import com.user.data.MobileProjectsResponse
+import com.user.data.MobileCheckpointListResponse
+import com.user.data.MobileSessionActionResponse
+import com.user.data.MobileSessionSummaryResponse
 import com.user.data.OrchestratorApiResponse
 import com.user.data.PrefsManager
 import com.user.data.Project
@@ -277,7 +280,7 @@ class OrchestratorApiClient(
     suspend fun getProjectStatus(projectId: String): Result<ProjectStatusResponse> = withContext(Dispatchers.IO) {
         try {
             val url = buildMobileUrl("projects/${projectId}/status")
-            Log.d(TAG, "Fetching status for project $projectId from: $url [project-status-v1]")
+            Log.d(TAG, "Fetching status for project $projectId from: $url [project-status-v3]")
 
             val request = Request.Builder()
                 .url(url)
@@ -312,8 +315,8 @@ class OrchestratorApiClient(
                 Result.success(normalized)
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Error fetching status for project $projectId [project-status-v1]: ${e.message}")
-            buildFailure("Failed to load project status for $projectId [project-status-v1].", e)
+            Log.w(TAG, "Error fetching status for project $projectId [project-status-v3]: ${e.message}")
+            buildFailure("Failed to load project status for $projectId [project-status-v3].", e)
         }
     }
 
@@ -346,6 +349,114 @@ class OrchestratorApiClient(
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching file tree for project $projectId: ${e.message}")
             buildFailure("Failed to load file tree for project $projectId.", e)
+        }
+    }
+
+    suspend fun getSessionSummary(sessionId: String): Result<MobileSessionSummaryResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/summary")
+            Log.d(TAG, "Fetching session summary for $sessionId from: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Session summary API failed for $sessionId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileSessionSummaryResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error fetching session summary for $sessionId: ${e.message}")
+            buildFailure("Failed to load session summary for $sessionId.", e)
+        }
+    }
+
+    suspend fun getSessionCheckpoints(sessionId: String): Result<MobileCheckpointListResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/checkpoints")
+            Log.d(TAG, "Fetching session checkpoints for $sessionId from: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Checkpoint API failed for $sessionId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileCheckpointListResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error fetching checkpoints for $sessionId: ${e.message}")
+            buildFailure("Failed to load checkpoints for $sessionId.", e)
+        }
+    }
+
+    suspend fun stopSession(sessionId: String): Result<MobileSessionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/stop")
+            Log.d(TAG, "Stopping session $sessionId via: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Stop session API failed for $sessionId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileSessionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error stopping session $sessionId: ${e.message}")
+            buildFailure("Failed to stop session $sessionId.", e)
+        }
+    }
+
+    suspend fun resumeSession(sessionId: String): Result<MobileSessionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/resume")
+            Log.d(TAG, "Resuming session $sessionId via: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Resume session API failed for $sessionId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileSessionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error resuming session $sessionId: ${e.message}")
+            buildFailure("Failed to resume session $sessionId.", e)
         }
     }
 

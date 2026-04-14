@@ -64,4 +64,18 @@
 
     <string name="settings_save">Save Settings</string>
 
+    <string name="onboarding_skip">Skip tutorial</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_finish">Get Started</string>
+    <string name="onboarding_page_indicator">%1$d / %2$d</string>
+    <string name="chip_show_blockers">Show blockers</string>
+    <string name="chip_open_project">Open project</string>
+    <string name="chip_resume_session">Resume session</string>
+    <string name="chip_diagnose_task">Diagnose task</string>
+    <string name="chip_status_session">Status session</string>
+    <string name="command_prefilled">Command added to input</string>
+    <string name="command_toggle">Cmd</string>
+    <string name="command_hide">Hide</string>
+
 </resources>

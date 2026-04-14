@@ -21,6 +21,25 @@
             app:titleTextColor="@color/text_primary"
             app:navigationIcon="@drawable/ic_back"/>
 
+        <EditText
+            android:id="@+id/searchInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_chat_input"
+            android:hint="Search projects or tasks"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:minHeight="48dp"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary" />
+
         <!-- Dashboard Stats Grid -->
         <androidx.cardview.widget.CardView
             android:id="@+id/statsCard"
@@ -230,6 +249,52 @@
                     android:lineSpacingExtra="2dp"
                     android:maxLines="3"
                     android:text="Open a project to inspect logs, status, and task details."
+                    android:textColor="@color/card_text_secondary"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/blockersCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Blockers"
+                    android:textColor="@color/card_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/blockerSummaryView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="No blockers detected."
+                    android:textColor="@color/card_text_primary"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/blockerDetailsView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:lineSpacingExtra="2dp"
+                    android:maxLines="4"
+                    android:text="Runs that need attention will appear here."
                     android:textColor="@color/card_text_secondary"
                     android:textSize="12sp"/>
             </LinearLayout>
