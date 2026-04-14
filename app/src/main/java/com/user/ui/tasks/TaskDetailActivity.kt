@@ -1,6 +1,9 @@
 package com.user.ui.tasks
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.user.ClawMobileApplication
@@ -10,8 +13,10 @@ import com.user.data.TaskStatus
 import com.user.databinding.ActivityTaskDetailBinding
 import com.user.ui.FailureSummary
 import com.user.ui.OutputHighlighter
+import com.user.service.OrchestratorApiClient
 import com.user.viewmodel.TaskViewModel
 import com.user.viewmodel.TaskViewModelFactory
+import kotlinx.coroutines.launch
 
 /**
  * Activity for displaying task details and performing actions
@@ -20,6 +25,7 @@ class TaskDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityTaskDetailBinding
     private lateinit var viewModel: TaskViewModel
+    private var orchestratorClient: OrchestratorApiClient? = null
     private var currentTask: Task? = null
     private var sessionId: String = ""
 
@@ -45,10 +51,10 @@ class TaskDetailActivity : AppCompatActivity() {
             repository = app.repository,
             sessionId = sessionId,
             orchestratorClient = if (app.prefsManager.isOrchestratorConfigured()) {
-                com.user.service.OrchestratorApiClient(
+                OrchestratorApiClient(
                     prefs = app.prefsManager,
                     gatewayToken = app.prefsManager.gatewayToken
-                )
+                ).also { orchestratorClient = it }
             } else null
         )
         viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
@@ -158,19 +164,28 @@ class TaskDetailActivity : AppCompatActivity() {
     private fun updateActionButtons(status: TaskStatus) {
         val approveBtn = binding.approveButton
         val rejectBtn = binding.rejectButton
+        val openSessionBtn = binding.openSessionButton
         val startBtn = binding.startButton
+        val linkedSessionId = currentTask?.sessionId?.takeIf { it.isNotBlank() }
 
-        if (sessionId.isBlank()) {
-            approveBtn.visibility = android.view.View.GONE
-            rejectBtn.visibility = android.view.View.GONE
-            startBtn.visibility = android.view.View.GONE
-            return
+        if (linkedSessionId != null) {
+            openSessionBtn.visibility = android.view.View.VISIBLE
+            openSessionBtn.setOnClickListener {
+                startActivity(
+                    Intent(this, SessionDetailActivity::class.java).apply {
+                        putExtra("session_id", linkedSessionId)
+                        putExtra("session_name", "${currentTask?.title}_session")
+                    }
+                )
+            }
+        } else {
+            openSessionBtn.visibility = android.view.View.GONE
         }
 
         when (status) {
             TaskStatus.PENDING -> {
-                approveBtn.visibility = android.view.View.VISIBLE
-                rejectBtn.visibility = android.view.View.VISIBLE
+                approveBtn.visibility = if (sessionId.isBlank()) android.view.View.GONE else android.view.View.VISIBLE
+                rejectBtn.visibility = if (sessionId.isBlank()) android.view.View.GONE else android.view.View.VISIBLE
                 startBtn.visibility = android.view.View.GONE
                 approveBtn.setOnClickListener { viewModel.approveTask(currentTask?.taskId ?: "") }
                 rejectBtn.setOnClickListener {
@@ -187,7 +202,7 @@ class TaskDetailActivity : AppCompatActivity() {
             TaskStatus.APPROVED -> {
                 approveBtn.visibility = android.view.View.GONE
                 rejectBtn.visibility = android.view.View.GONE
-                startBtn.visibility = android.view.View.VISIBLE
+                startBtn.visibility = if (sessionId.isBlank()) android.view.View.GONE else android.view.View.VISIBLE
                 startBtn.setOnClickListener { viewModel.startTask(currentTask?.taskId ?: "") }
             }
             TaskStatus.IN_PROGRESS -> {
@@ -195,11 +210,64 @@ class TaskDetailActivity : AppCompatActivity() {
                 rejectBtn.visibility = android.view.View.GONE
                 startBtn.visibility = android.view.View.GONE
             }
-            TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.REJECTED, TaskStatus.TIMEOUT -> {
+            TaskStatus.FAILED, TaskStatus.TIMEOUT -> {
+                approveBtn.visibility = android.view.View.GONE
+                rejectBtn.visibility = android.view.View.GONE
+                startBtn.visibility =
+                    if (orchestratorClient != null) android.view.View.VISIBLE else android.view.View.GONE
+                startBtn.text = getString(R.string.retry_task)
+                startBtn.setOnClickListener { confirmRetryTask() }
+            }
+            TaskStatus.COMPLETED, TaskStatus.REJECTED -> {
                 approveBtn.visibility = android.view.View.GONE
                 rejectBtn.visibility = android.view.View.GONE
                 startBtn.visibility = android.view.View.GONE
             }
+        }
+    }
+
+    private fun confirmRetryTask() {
+        val task = currentTask ?: return
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.retry_task_title)
+            .setMessage(R.string.retry_task_message)
+            .setPositiveButton(R.string.retry_task) { _, _ ->
+                retryTask(task)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun retryTask(task: Task) {
+        val client = orchestratorClient ?: return
+        binding.startButton.isEnabled = false
+        lifecycleScope.launch {
+            client.retryTask(task.taskId)
+                .onSuccess { response ->
+                    val refreshedTask = task.copy(
+                        status = TaskStatus.IN_PROGRESS,
+                        error = null
+                    )
+                    currentTask = refreshedTask
+                    bindTask(refreshedTask)
+                    binding.startButton.isEnabled = true
+                    if (response.sessionId != null) {
+                        sessionId = response.sessionId.toString()
+                    }
+                    Toast.makeText(
+                        this@TaskDetailActivity,
+                        response.message.ifBlank { getString(R.string.retry_task_success) },
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                .onFailure { error ->
+                    binding.startButton.isEnabled = true
+                    Toast.makeText(
+                        this@TaskDetailActivity,
+                        error.message ?: getString(R.string.retry_task_failed),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
         }
     }
 

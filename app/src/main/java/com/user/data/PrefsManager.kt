@@ -8,6 +8,10 @@ private const val PREFS_TAG = "PrefsManager"
 
 class PrefsManager(context: Context) {
     private val prefs = context.getSharedPreferences("openclaw_prefs", Context.MODE_PRIVATE)
+    private companion object {
+        const val KEY_PINNED_PROJECT_IDS = "pinned_project_ids"
+        const val KEY_PINNED_SESSION_IDS = "pinned_session_ids"
+    }
 
     var onboardingCompleted: Boolean
         get() = prefs.getBoolean("onboarding_completed", false)
@@ -74,5 +78,41 @@ class PrefsManager(context: Context) {
     // Check if Orchestrator is configured
     fun isOrchestratorConfigured(): Boolean {
         return orchestratorServerUrl.isNotEmpty() && orchestratorApiKey.isNotEmpty()
+    }
+
+    fun getPinnedProjectIds(): Set<String> =
+        prefs.getStringSet(KEY_PINNED_PROJECT_IDS, emptySet()) ?: emptySet()
+
+    fun isProjectPinned(projectId: String): Boolean = getPinnedProjectIds().contains(projectId)
+
+    fun togglePinnedProject(projectId: String): Boolean {
+        val updated = getPinnedProjectIds().toMutableSet()
+        val pinned = if (updated.contains(projectId)) {
+            updated.remove(projectId)
+            false
+        } else {
+            updated.add(projectId)
+            true
+        }
+        prefs.edit().putStringSet(KEY_PINNED_PROJECT_IDS, updated).apply()
+        return pinned
+    }
+
+    fun getPinnedSessionIds(): Set<String> =
+        prefs.getStringSet(KEY_PINNED_SESSION_IDS, emptySet()) ?: emptySet()
+
+    fun isSessionPinned(sessionId: String): Boolean = getPinnedSessionIds().contains(sessionId)
+
+    fun togglePinnedSession(sessionId: String): Boolean {
+        val updated = getPinnedSessionIds().toMutableSet()
+        val pinned = if (updated.contains(sessionId)) {
+            updated.remove(sessionId)
+            false
+        } else {
+            updated.add(sessionId)
+            true
+        }
+        prefs.edit().putStringSet(KEY_PINNED_SESSION_IDS, updated).apply()
+        return pinned
     }
 }

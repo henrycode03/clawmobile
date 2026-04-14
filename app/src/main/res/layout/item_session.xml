@@ -42,6 +42,15 @@
     </LinearLayout>
 
     <ImageButton
+        android:id="@+id/pinButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/btn_star_big_off"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="@color/status_pending"
+        android:contentDescription="@string/pin_session" />
+
+    <ImageButton
         android:id="@+id/deleteButton"
         android:layout_width="40dp"
         android:layout_height="40dp"

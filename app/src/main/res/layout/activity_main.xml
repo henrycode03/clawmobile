@@ -245,7 +245,7 @@
                     android:src="@android:drawable/ic_btn_speak_now"
                     app:tint="@color/text_secondary" />
 
-                <EditText
+                <AutoCompleteTextView
                     android:id="@+id/messageEditText"
                     style="@style/TextAppearance.OpenClaw.Message"
                     android:layout_width="0dp"
@@ -253,7 +253,7 @@
                     android:layout_weight="1"
                     android:background="@null"
                     android:gravity="center_vertical|start"
-                    android:hint="@string/message_hint"
+                    android:hint="@string/message_hint_command"
                     android:inputType="textCapSentences|textMultiLine"
                     android:maxLines="4"
                     android:minHeight="48dp"
@@ -263,7 +263,10 @@
                     android:paddingBottom="10dp"
                     android:scrollbars="vertical"
                     android:textColor="@color/input_text"
-                    android:textColorHint="@color/text_secondary" />
+                    android:textColorHint="@color/text_secondary"
+                    android:dropDownAnchor="@id/inputContainer"
+                    android:dropDownVerticalOffset="4dp"
+                    android:completionThreshold="1" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sendButton"

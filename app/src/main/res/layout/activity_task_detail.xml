@@ -236,10 +236,21 @@
                 app:cornerRadius="4dp"/>
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/openSessionButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/open_session"
+                android:visibility="gone"
+                app:cornerRadius="4dp"/>
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/startButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="START"
                 android:visibility="gone"

@@ -12,9 +12,12 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.AutoCompleteTextView
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import android.text.Editable
+import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -46,6 +49,18 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: ChatViewModel by viewModels()
     private var selectedFileUri: Uri? = null
     private var commandsVisible: Boolean = false
+    private val commandTemplates = listOf(
+        "show blockers all",
+        "show blockers project <project_id>",
+        "open project <project_id>",
+        "status project <project_id>",
+        "status session <session_id>",
+        "resume session <session_id>",
+        "stop session <session_id>",
+        "diagnose task <task_id>",
+    )
+    private val inputHistory = mutableListOf<String>()
+    private var historyIndex = -1
 
     private val voiceLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -95,6 +110,7 @@ class MainActivity : AppCompatActivity() {
         setupObservers()
         setupInputHandlers()
         setupQuickCommandChips()
+        setupCommandSuggestions()
         updateAttachmentUi()
 
         val sessionId = intent.getStringExtra("session_id")
@@ -162,14 +178,24 @@ class MainActivity : AppCompatActivity() {
     private fun setupInputHandlers() {
         binding.sendButton.setOnClickListener { sendMessage() }
         binding.messageEditText.setOnKeyListener { _, keyCode, event ->
-            if (keyCode == KeyEvent.KEYCODE_ENTER &&
-                event.action == KeyEvent.ACTION_DOWN &&
-                !event.isShiftPressed
-            ) {
-                sendMessage()
-                true
-            } else {
-                false
+            when {
+                keyCode == KeyEvent.KEYCODE_ENTER &&
+                        event.action == KeyEvent.ACTION_DOWN &&
+                        !event.isShiftPressed -> {
+                    sendMessage()
+                    true
+                }
+                keyCode == KeyEvent.KEYCODE_DPAD_UP &&
+                        event.action == KeyEvent.ACTION_DOWN -> {
+                    recallPreviousInput()
+                    true
+                }
+                keyCode == KeyEvent.KEYCODE_DPAD_DOWN &&
+                        event.action == KeyEvent.ACTION_DOWN -> {
+                    recallNextInput()
+                    true
+                }
+                else -> false
             }
         }
         binding.attachButton.setOnClickListener {
@@ -202,10 +228,55 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupCommandSuggestions() {
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            commandTemplates
+        )
+        (binding.messageEditText as? AutoCompleteTextView)?.apply {
+            setAdapter(adapter)
+            threshold = 1
+            setOnItemClickListener { _, _, _, _ ->
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.command_suggestion_selected),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    val text = s?.toString()?.trimStart().orEmpty()
+                    if (shouldSuggestCommands(text) && hasFocus()) {
+                        post { showDropDown() }
+                    }
+                }
+
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
+        }
+    }
+
+    private fun shouldSuggestCommands(text: String): Boolean {
+        if (text.isEmpty()) return false
+        val normalized = text.lowercase()
+        return normalized.startsWith("show") ||
+                normalized.startsWith("open") ||
+                normalized.startsWith("status") ||
+                normalized.startsWith("resume") ||
+                normalized.startsWith("stop") ||
+                normalized.startsWith("retry") ||
+                normalized.startsWith("restart") ||
+                normalized.startsWith("diagnose")
+    }
+
     private fun prefillCommand(command: String) {
         binding.messageEditText.setText(command)
         binding.messageEditText.setSelection(command.length)
         binding.messageEditText.requestFocus()
+        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
         Toast.makeText(this, getString(R.string.command_prefilled), Toast.LENGTH_SHORT).show()
         if (commandsVisible) {
             commandsVisible = false
@@ -220,7 +291,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateCommandChipVisibility() {
         binding.commandChipsScroll.visibility = if (commandsVisible) View.VISIBLE else View.GONE
-        invalidateOptionsMenu()
     }
 
     private fun setupAgentSpinner(agents: List<AgentInfo>) {
@@ -281,8 +351,45 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (text.isEmpty()) return
+        rememberInput(text)
         binding.messageEditText.text?.clear()
+        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
         viewModel.sendMessage(text)
+    }
+
+    private fun rememberInput(text: String) {
+        if (inputHistory.lastOrNull() != text) {
+            inputHistory.add(text)
+        }
+        historyIndex = inputHistory.size
+    }
+
+    private fun recallPreviousInput() {
+        if (inputHistory.isEmpty()) return
+        if (historyIndex > 0) {
+            historyIndex -= 1
+        } else {
+            historyIndex = 0
+        }
+        applyHistoryEntry()
+    }
+
+    private fun recallNextInput() {
+        if (inputHistory.isEmpty()) return
+        if (historyIndex < inputHistory.lastIndex) {
+            historyIndex += 1
+            applyHistoryEntry()
+        } else {
+            historyIndex = inputHistory.size
+            binding.messageEditText.text?.clear()
+        }
+    }
+
+    private fun applyHistoryEntry() {
+        if (historyIndex !in inputHistory.indices) return
+        val text = inputHistory[historyIndex]
+        binding.messageEditText.setText(text)
+        binding.messageEditText.setSelection(text.length)
     }
 
     private fun showAttachmentSheet() {
@@ -432,13 +539,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.action_commands)?.title = getString(
-            if (commandsVisible) R.string.command_hide else R.string.command_toggle
-        )
-        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

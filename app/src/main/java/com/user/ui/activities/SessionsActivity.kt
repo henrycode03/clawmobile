@@ -4,10 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.core.widget.addTextChangedListener
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.user.ClawMobileApplication
+import com.user.R
 import com.user.databinding.ActivitySessionsBinding
 import com.user.ui.SessionAdapter
 import com.user.viewmodel.SessionViewModel
@@ -20,11 +23,13 @@ class SessionsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySessionsBinding
     private lateinit var sessionAdapter: SessionAdapter
     private val viewModel: SessionViewModel by viewModels()
+    private lateinit var prefsManager: com.user.data.PrefsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySessionsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        prefsManager = (application as ClawMobileApplication).prefsManager
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Chat History"
@@ -37,7 +42,17 @@ class SessionsActivity : AppCompatActivity() {
                 }
                 startActivity(intent)
             },
-            onDelete = { session -> viewModel.deleteSession(session) }
+            onDelete = { session -> viewModel.deleteSession(session) },
+            onPin = { session ->
+                val pinned = prefsManager.togglePinnedSession(session.sessionId)
+                Toast.makeText(
+                    this,
+                    getString(if (pinned) R.string.session_pinned else R.string.session_unpinned),
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.refresh()
+            },
+            isPinned = { session -> prefsManager.isSessionPinned(session.sessionId) }
         )
 
         binding.sessionsRecyclerView.apply {
@@ -50,7 +65,8 @@ class SessionsActivity : AppCompatActivity() {
         }
 
         viewModel.sessions.observe(this) { sessions ->
-            sessionAdapter.submitList(sessions)
+            val (pinned, regular) = sessions.partition { prefsManager.isSessionPinned(it.sessionId) }
+            sessionAdapter.submitSessions(pinned + regular)
         }
     }
 
