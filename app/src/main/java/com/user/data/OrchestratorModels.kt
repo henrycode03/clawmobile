@@ -114,7 +114,19 @@ data class OrchestTaskResponse(
     val createdAt: String,
     @SerializedName("updated_at")
     val updatedAt: String? = null,
-    val priority: Int = 0
+    val priority: Int = 0,
+    @SerializedName("sequence_index")
+    val sequenceIndex: Int? = null,
+    @SerializedName("sequence_total")
+    val sequenceTotal: Int? = null,
+    @SerializedName("latest_session_id")
+    val latestSessionId: Int? = null,
+    @SerializedName("latest_session_name")
+    val latestSessionName: String? = null,
+    @SerializedName("latest_session_status")
+    val latestSessionStatus: String? = null,
+    @SerializedName("has_active_session")
+    val hasActiveSession: Boolean = false,
 )
 
 /**
@@ -127,9 +139,14 @@ data class OrchestTask(
     val status: String,
     val projectId: String,
     val sessionId: String? = null,
+    val sessionName: String? = null,
+    val sessionStatus: String? = null,
+    val hasActiveSession: Boolean = false,
     val createdAt: String,
     val updatedAt: String,
-    val priority: Int = 0
+    val priority: Int = 0,
+    val sequenceIndex: Int? = null,
+    val sequenceTotal: Int? = null,
 )
 
 /**
@@ -163,6 +180,8 @@ data class ProjectStatusResponse(
     val description: String? = null,
     @SerializedName("active_sessions")
     val activeSessions: Int = 0,
+    @SerializedName("recent_sessions")
+    val recentSessions: Int = 0,
     val tasks: TaskStatsResponse? = null,
     val sessions: List<ProjectSessionSummary> = emptyList()
 )
@@ -171,8 +190,28 @@ data class ProjectSessionSummary(
     val id: Int = 0,
     val name: String = "",
     val status: String = "",
+    @SerializedName("is_active")
+    val isActive: Boolean = false,
     @SerializedName("started_at")
     val startedAt: String? = null
+)
+
+data class MobileSessionListItem(
+    val id: Int = 0,
+    val name: String = "",
+    val status: String = "",
+    @SerializedName("is_active")
+    val isActive: Boolean = false,
+    @SerializedName("project_id")
+    val projectId: Int = 0,
+    @SerializedName("started_at")
+    val startedAt: String? = null,
+    @SerializedName("stopped_at")
+    val stoppedAt: String? = null,
+)
+
+data class MobileSessionsListResponse(
+    val sessions: List<MobileSessionListItem> = emptyList()
 )
 
 data class ProjectTreeResponse(

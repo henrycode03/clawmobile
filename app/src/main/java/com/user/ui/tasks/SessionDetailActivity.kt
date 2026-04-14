@@ -35,6 +35,8 @@ class SessionDetailActivity : AppCompatActivity() {
     private var sessionName: String = "Session"
     private var currentLogFilter: LogFilter = LogFilter.ALL
     private var latestLogs: List<RecentActivity> = emptyList()
+    private var latestSummary: MobileSessionSummaryResponse? = null
+    private var latestCheckpoints: MobileCheckpointListResponse? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,7 +78,9 @@ class SessionDetailActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.Main).launch {
             client.getSessionSummary(sessionId).onSuccess { summary ->
+                latestSummary = summary
                 bindSummary(summary)
+                renderRecoveryCard()
                 if (showToast) {
                     Snackbar.make(binding.root, "Session refreshed", Snackbar.LENGTH_SHORT).show()
                 }
@@ -85,10 +89,14 @@ class SessionDetailActivity : AppCompatActivity() {
             }
 
             client.getSessionCheckpoints(sessionId).onSuccess { checkpoints ->
+                latestCheckpoints = checkpoints
                 bindCheckpoints(checkpoints)
+                renderRecoveryCard()
             }.onFailure { error ->
                 binding.checkpointSummaryView.text = error.message ?: "Unable to load checkpoints."
                 binding.checkpointListView.text = ""
+                latestCheckpoints = null
+                renderRecoveryCard()
             }
         }
     }
@@ -136,7 +144,9 @@ class SessionDetailActivity : AppCompatActivity() {
             if (failureSummary.isNullOrBlank()) View.GONE else View.VISIBLE
 
         binding.resumeButton.visibility =
-            if (summary.status.equals("paused", true) || summary.status.equals("stopped", true)) View.VISIBLE else View.GONE
+            if ((summary.status.equals("paused", true) || summary.status.equals("stopped", true)) &&
+                (latestCheckpoints?.totalCount ?: 0) > 0
+            ) View.VISIBLE else View.GONE
         binding.stopButton.visibility =
             if (summary.status.equals("running", true) || summary.status.equals("paused", true)) View.VISIBLE else View.GONE
     }
@@ -149,21 +159,69 @@ class SessionDetailActivity : AppCompatActivity() {
 
         binding.checkpointSummaryView.text = if (checkpoints.totalCount > 0) {
             val bestLabel = bestCheckpoint?.let { checkpoint ->
-                val stepSuffix = checkpoint.stepIndex?.let { " at step $it" } ?: ""
-                "\nBest resume point: ${checkpoint.name}$stepSuffix"
+                val stepSuffix = checkpoint.stepIndex?.let { " • step $it" } ?: ""
+                "Best resume point: ${checkpoint.name}$stepSuffix"
             }.orEmpty()
-            "${checkpoints.totalCount} checkpoint(s) available for resume$bestLabel"
+            "${checkpoints.totalCount} checkpoint(s) available\n$bestLabel"
         } else {
             "No checkpoints available yet"
         }
-        binding.checkpointListView.text = if (checkpoints.checkpoints.isEmpty()) {
+        val recentCheckpointLines = checkpoints.checkpoints
+            .asReversed()
+            .filterNot { checkpoint -> checkpoint.name == bestCheckpoint?.name }
+            .take(3)
+            .map { checkpoint ->
+                val stepSuffix = checkpoint.stepIndex?.let { " • step $it" } ?: ""
+                "- ${checkpoint.name}$stepSuffix"
+            }
+
+        binding.checkpointListView.text = if (recentCheckpointLines.isEmpty()) {
             ""
         } else {
-            checkpoints.checkpoints.takeLast(6).joinToString("\n") { checkpoint ->
-                val stepSuffix = checkpoint.stepIndex?.let { " • step $it" } ?: ""
-                "${checkpoint.name}$stepSuffix"
-            }
+            recentCheckpointLines.joinToString("\n")
         }
+        binding.checkpointListView.visibility =
+            if (recentCheckpointLines.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    private fun renderRecoveryCard() {
+        val summary = latestSummary ?: run {
+            binding.recoveryCard.visibility = View.GONE
+            return
+        }
+        val checkpointCount = latestCheckpoints?.totalCount ?: 0
+        val status = summary.status.lowercase()
+        val resumable = checkpointCount > 0 && (status == "paused" || status == "stopped")
+
+        when {
+            resumable -> {
+                binding.recoveryCard.visibility = View.VISIBLE
+                binding.recoveryTitle.text = getString(R.string.recovery_resume_title)
+                binding.recoverySummary.text = resources.getQuantityString(
+                    R.plurals.session_recovery_resume_message,
+                    checkpointCount,
+                    checkpointCount
+                )
+            }
+            status == "running" -> {
+                binding.recoveryCard.visibility = View.VISIBLE
+                binding.recoveryTitle.text = getString(R.string.recovery_running_title)
+                binding.recoverySummary.text = getString(R.string.recovery_running_message)
+            }
+            status == "stopped" || status == "failed" || status == "paused" -> {
+                binding.recoveryCard.visibility = View.VISIBLE
+                binding.recoveryTitle.text = getString(R.string.recovery_retry_title)
+                binding.recoverySummary.text = getString(R.string.session_recovery_retry_message)
+            }
+            else -> binding.recoveryCard.visibility = View.GONE
+        }
+
+        binding.resumeButton.visibility = if (resumable) View.VISIBLE else View.GONE
+        binding.stopButton.visibility =
+            if (status == "running" || status == "paused") View.VISIBLE else View.GONE
+        binding.resumeButton.text = getString(
+            if (checkpointCount > 0) R.string.resume_session_action else R.string.resume_button_label
+        )
     }
 
     private fun stopSession() {
@@ -248,7 +306,7 @@ class SessionDetailActivity : AppCompatActivity() {
                     }
                 }
             }
-            .take(12)
+            .take(8)
 
         val rendered = if (filteredLogs.isEmpty()) {
             when (currentLogFilter) {
@@ -263,16 +321,14 @@ class SessionDetailActivity : AppCompatActivity() {
                 .entries
                 .joinToString("\n\n") { (phase, logs) ->
                     buildString {
-                        append("=== ")
                         append(phase)
-                        append(" ===")
                         append("\n\n")
                         append(
                             logs.joinToString("\n\n") { log ->
                                 val timestamp = TimeFormatUtils.formatApiTimestamp(log.timestamp)
                                     ?: log.timestamp.takeIf { it.isNotBlank() }
                                     ?: "Recent"
-                                "$timestamp\n[${log.level}] ${log.message}"
+                                "$timestamp • ${log.level}\n${compactLogMessage(log.message)}"
                             }
                         )
                     }
@@ -280,12 +336,19 @@ class SessionDetailActivity : AppCompatActivity() {
         }
 
         binding.logTimelineHint.text = when (currentLogFilter) {
-            LogFilter.ALL -> "Newest first. Grouped by phase so the run is easier to follow."
-            LogFilter.ERRORS -> "Newest errors first. Use this when you only want blockers."
-            LogFilter.PHASES -> "Planning, executing, debugging, and completion events grouped together."
-            LogFilter.CHECKPOINTS -> "Checkpoint and resume activity grouped for recovery review."
+            LogFilter.ALL -> "Newest first, grouped by run phase."
+            LogFilter.ERRORS -> "Only the newest blockers and failures."
+            LogFilter.PHASES -> "Planning, execution, debugging, and completion grouped together."
+            LogFilter.CHECKPOINTS -> "Resume and checkpoint activity only."
         }
         binding.recentLogsView.text = OutputHighlighter.render(this, rendered)
+    }
+
+    private fun compactLogMessage(message: String): String {
+        return message
+            .replace(Regex("\\s+"), " ")
+            .replace(" [CHECKPOINT] ", " [CHECKPOINT] ")
+            .trim()
     }
 
     private fun classifyPhase(log: RecentActivity): String {

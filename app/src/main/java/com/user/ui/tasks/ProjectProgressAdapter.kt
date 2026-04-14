@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -17,7 +18,8 @@ import com.user.data.Project
 class ProjectProgressAdapter(
     private val onProjectClickListener: ((Project) -> Unit)? = null,
     private val onProjectPinClickListener: ((Project) -> Unit)? = null,
-    private val isProjectPinned: ((Project) -> Boolean)? = null
+    private val isProjectPinned: ((Project) -> Boolean)? = null,
+    private val onProjectLongClickListener: ((Project) -> Unit)? = null,
 ) : ListAdapter<Project, ProjectProgressAdapter.ProjectViewHolder>(ProjectDiffCallback()) {
 
     data class ProjectStats(
@@ -80,6 +82,10 @@ class ProjectProgressAdapter(
             itemView.setOnClickListener {
                 onProjectClickListener?.invoke(project)
             }
+            itemView.setOnLongClickListener {
+                onProjectLongClickListener?.invoke(project)
+                true
+            }
             pinProjectButton.setOnClickListener {
                 onProjectPinClickListener?.invoke(project)
             }
@@ -89,7 +95,13 @@ class ProjectProgressAdapter(
             )
             if (pinProjectButton is android.widget.ImageButton) {
                 pinProjectButton.setImageResource(
-                    if (pinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off
+                    if (pinned) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+                )
+                pinProjectButton.setColorFilter(
+                    ContextCompat.getColor(
+                        itemView.context,
+                        if (pinned) R.color.status_pending else R.color.timestamp_text
+                    )
                 )
             }
         }

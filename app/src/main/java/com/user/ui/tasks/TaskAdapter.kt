@@ -18,7 +18,8 @@ class TaskAdapter(
     private val onApproveClick: (Task) -> Unit,
     private val onRejectClick: (Task) -> Unit,
     private val onStartClick: (Task) -> Unit,
-    private val onViewClick: (Task) -> Unit
+    private val onViewClick: (Task) -> Unit,
+    private val onLongPress: ((Task) -> Unit)? = null,
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -58,6 +59,10 @@ class TaskAdapter(
             startButton?.visibility = if (task.status == TaskStatus.APPROVED) View.VISIBLE else View.GONE
 
             viewButton.setOnClickListener { onViewClick(task) }
+            itemView.setOnLongClickListener {
+                onLongPress?.invoke(task)
+                true
+            }
 
             approveButton?.setOnClickListener { onApproveClick(task) }
             rejectButton?.setOnClickListener { onRejectClick(task) }

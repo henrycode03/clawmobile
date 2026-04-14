@@ -2,7 +2,7 @@ package com.user.ui
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.user.data.ChatSession
 import com.user.databinding.ItemSessionBinding
@@ -15,7 +15,8 @@ class SessionAdapter(
     private val onClick: (ChatSession) -> Unit,
     private val onDelete: (ChatSession) -> Unit,
     private val onPin: (ChatSession) -> Unit,
-    private val isPinned: (ChatSession) -> Boolean
+    private val isPinned: (ChatSession) -> Boolean,
+    private val onLongPress: ((ChatSession) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private sealed class SessionListItem {
@@ -91,6 +92,10 @@ class SessionAdapter(
             binding.sessionTime.text = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
                 .format(Date(session.lastMessageAt))
             binding.root.setOnClickListener { onClick(session) }
+            binding.root.setOnLongClickListener {
+                onLongPress?.invoke(session)
+                true
+            }
             binding.deleteButton.setOnClickListener { onDelete(session) }
             binding.pinButton.setOnClickListener { onPin(session) }
             val pinned = isPinned(session)
@@ -98,7 +103,13 @@ class SessionAdapter(
                 if (pinned) com.user.R.string.unpin_session else com.user.R.string.pin_session
             )
             binding.pinButton.setImageResource(
-                if (pinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off
+                if (pinned) com.user.R.drawable.ic_star_filled else com.user.R.drawable.ic_star_outline
+            )
+            binding.pinButton.setColorFilter(
+                ContextCompat.getColor(
+                    binding.root.context,
+                    if (pinned) com.user.R.color.status_pending else com.user.R.color.timestamp_text
+                )
             )
         }
     }
@@ -130,4 +141,3 @@ class SessionAdapter(
         const val VIEW_TYPE_ROW = 1
     }
 }
-
