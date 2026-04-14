@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chatAdapter: ChatAdapter
     private val viewModel: ChatViewModel by viewModels()
     private var selectedFileUri: Uri? = null
+    private var commandsVisible: Boolean = false
 
     private val voiceLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -76,7 +77,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        if (PrefsManager(this).gatewayToken.isEmpty()) {
+        val prefs = PrefsManager(this)
+        if (!prefs.onboardingCompleted) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
+
+        if (prefs.gatewayToken.isEmpty()) {
             Toast.makeText(this, "Please enter your Gateway Token", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, SettingsActivity::class.java))
             finish()
@@ -86,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupObservers()
         setupInputHandlers()
+        setupQuickCommandChips()
         updateAttachmentUi()
 
         val sessionId = intent.getStringExtra("session_id")
@@ -172,6 +181,46 @@ class MainActivity : AppCompatActivity() {
         }
         binding.voiceButton.setOnClickListener { startVoiceInput() }
         binding.removePreviewButton.setOnClickListener { clearSelectedFile() }
+    }
+
+    private fun setupQuickCommandChips() {
+        updateCommandChipVisibility()
+        binding.chipShowBlockers.setOnClickListener {
+            prefillCommand("show blockers all")
+        }
+        binding.chipOpenProject.setOnClickListener {
+            prefillCommand("open project <project_id>")
+        }
+        binding.chipResumeSession.setOnClickListener {
+            prefillCommand("resume session <session_id>")
+        }
+        binding.chipDiagnoseTask.setOnClickListener {
+            prefillCommand("diagnose task <task_id>")
+        }
+        binding.chipStatusSession.setOnClickListener {
+            prefillCommand("status session <session_id>")
+        }
+    }
+
+    private fun prefillCommand(command: String) {
+        binding.messageEditText.setText(command)
+        binding.messageEditText.setSelection(command.length)
+        binding.messageEditText.requestFocus()
+        Toast.makeText(this, getString(R.string.command_prefilled), Toast.LENGTH_SHORT).show()
+        if (commandsVisible) {
+            commandsVisible = false
+            updateCommandChipVisibility()
+        }
+    }
+
+    private fun toggleCommandChips() {
+        commandsVisible = !commandsVisible
+        updateCommandChipVisibility()
+    }
+
+    private fun updateCommandChipVisibility() {
+        binding.commandChipsScroll.visibility = if (commandsVisible) View.VISIBLE else View.GONE
+        invalidateOptionsMenu()
     }
 
     private fun setupAgentSpinner(agents: List<AgentInfo>) {
@@ -385,6 +434,13 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_commands)?.title = getString(
+            if (commandsVisible) R.string.command_hide else R.string.command_toggle
+        )
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_new_chat -> {
@@ -403,8 +459,20 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, GitHubActivity::class.java))
                 true
             }
+            R.id.action_commands -> {
+                toggleCommandChips()
+                true
+            }
             R.id.action_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+            R.id.action_help -> {
+                startActivity(
+                    Intent(this, OnboardingActivity::class.java).apply {
+                        putExtra(OnboardingActivity.EXTRA_GUIDE_MODE, true)
+                    }
+                )
                 true
             }
             else -> super.onOptionsItemSelected(item)

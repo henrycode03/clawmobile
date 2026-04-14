@@ -8,6 +8,7 @@ import com.user.R
 import com.user.data.Task
 import com.user.data.TaskStatus
 import com.user.databinding.ActivityTaskDetailBinding
+import com.user.ui.FailureSummary
 import com.user.ui.OutputHighlighter
 import com.user.viewmodel.TaskViewModel
 import com.user.viewmodel.TaskViewModelFactory
@@ -124,6 +125,15 @@ class TaskDetailActivity : AppCompatActivity() {
         )
         binding.taskErrorLabel.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
         binding.taskError.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
+
+        val failureSummary = if (task.status == TaskStatus.FAILED || task.status == TaskStatus.TIMEOUT) {
+            FailureSummary.summarizeTaskFailure(task.error, task.result)
+        } else {
+            null
+        }
+        binding.failureSummaryView.text = failureSummary.orEmpty()
+        binding.failureSummaryCard.visibility =
+            if (failureSummary.isNullOrBlank()) android.view.View.GONE else android.view.View.VISIBLE
 
         // Show/hide action buttons based on status
         updateActionButtons(task.status)

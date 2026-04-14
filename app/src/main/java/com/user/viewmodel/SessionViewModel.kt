@@ -21,6 +21,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
 
     private var sortNewestFirst = true
     private var allSessions = listOf<ChatSession>()
+    private var query: String = ""
 
     init {
         observeSessions()
@@ -57,11 +58,26 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun setQuery(value: String) {
+        query = value.trim()
+        applySort()
+    }
+
     private fun applySort() {
-        val sorted = if (sortNewestFirst) {
-            allSessions.sortedByDescending { it.lastMessageAt }
+        val filtered = if (query.isBlank()) {
+            allSessions
         } else {
-            allSessions.sortedBy { it.lastMessageAt }
+            val normalizedQuery = query.lowercase()
+            allSessions.filter { session ->
+                session.title.lowercase().contains(normalizedQuery) ||
+                        session.sessionId.lowercase().contains(normalizedQuery)
+            }
+        }
+
+        val sorted = if (sortNewestFirst) {
+            filtered.sortedByDescending { it.lastMessageAt }
+        } else {
+            filtered.sortedBy { it.lastMessageAt }
         }
         _sessions.postValue(sorted)
     }

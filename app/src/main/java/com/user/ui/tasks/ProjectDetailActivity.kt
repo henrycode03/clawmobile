@@ -3,9 +3,13 @@ package com.user.ui.tasks
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.user.ClawMobileApplication
+import com.user.R
+import com.user.data.ProjectSessionSummary
 import com.user.databinding.ActivityProjectDetailBinding
 import com.user.service.OrchestratorApiClient
 import kotlinx.coroutines.CoroutineScope
@@ -90,13 +94,13 @@ class ProjectDetailActivity : AppCompatActivity() {
                 val activeSessionSummary = if (status.sessions.isEmpty()) {
                     "No active sessions right now"
                 } else {
-                    status.sessions.take(3).joinToString("\n") { session ->
-                        "${session.name} • ${session.status}"
-                    }
+                    "${status.activeSessions} active session(s)"
                 }
                 binding.activeSessionsSummary.text = activeSessionSummary
+                renderActiveSessions(status.sessions)
             }.onFailure { error ->
                 binding.projectStatusSummary.text = error.message ?: "Unable to load project status."
+                binding.activeSessionsContainer.removeAllViews()
             }
 
             client.getProjectTree(projectId).onSuccess { tree ->
@@ -150,5 +154,31 @@ class ProjectDetailActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    private fun renderActiveSessions(sessions: List<ProjectSessionSummary>) {
+        binding.activeSessionsContainer.removeAllViews()
+        if (sessions.isEmpty()) {
+            return
+        }
+
+        sessions.forEach { session ->
+            val sessionView = TextView(this).apply {
+                text = "${session.name} • ${session.status}"
+                textSize = 13f
+                setTextColor(ContextCompat.getColor(context, R.color.status_running))
+                setPadding(0, 8, 0, 8)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    val intent = Intent(this@ProjectDetailActivity, SessionDetailActivity::class.java).apply {
+                        putExtra("session_id", session.id.toString())
+                        putExtra("session_name", session.name)
+                    }
+                    startActivity(intent)
+                }
+            }
+            binding.activeSessionsContainer.addView(sessionView)
+        }
     }
 }

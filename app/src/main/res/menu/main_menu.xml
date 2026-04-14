@@ -27,8 +27,19 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_commands"
+        android:title="Cmd"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_settings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="Settings"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_help"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="Guide"
         app:showAsAction="never" />
 </menu>

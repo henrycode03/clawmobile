@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
@@ -35,12 +36,32 @@ import kotlinx.coroutines.launch
  */
 class TaskListActivity : AppCompatActivity() {
 
+    private enum class TaskFilterMode {
+        ALL,
+        PENDING,
+        ACTIVE
+    }
+
+    private data class BlockerItem(
+        val project: Project,
+        val summary: String,
+        val severity: Int,
+    )
+
     private lateinit var binding: ActivityTaskListBinding
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var viewModel: TaskViewModel
     private var orchestratorApiClient: OrchestratorApiClient? = null
     private lateinit var prefsManager: PrefsManager
     private lateinit var projectProgressAdapter: ProjectProgressAdapter
+    private val projectStatsById = mutableMapOf<String, ProjectProgressAdapter.ProjectStats>()
+    private var latestDashboardStats: DashboardSummary? = null
+    private var latestRecentActivity: List<RecentActivity> = emptyList()
+    private var lastDiagnosticsMessage: String? = null
+    private var primaryBlockerProject: Project? = null
+    private var latestTasks: List<Task> = emptyList()
+    private var latestProjects: List<Project> = emptyList()
+    private var currentTaskFilterMode: TaskFilterMode = TaskFilterMode.ALL
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +71,15 @@ class TaskListActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = "Tasks"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        binding.blockersCard.setOnClickListener {
+            primaryBlockerProject?.let { project ->
+                openProject(project)
+            }
+        }
+        binding.searchInput.addTextChangedListener {
+            applyVisibleFilters()
+        }
 
         setupRecyclerView()
         setupProjectRecyclerView()
@@ -117,13 +147,7 @@ class TaskListActivity : AppCompatActivity() {
 
     private fun setupProjectRecyclerView() {
         projectProgressAdapter = ProjectProgressAdapter(
-            onProjectClickListener = { project ->
-                val intent = Intent(this, ProjectDetailActivity::class.java).apply {
-                    putExtra("project_id", project.getProjectId())
-                    putExtra("project_name", project.name)
-                }
-                startActivity(intent)
-            }
+            onProjectClickListener = { project -> openProject(project) }
         )
         binding.projectsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@TaskListActivity)
@@ -137,8 +161,8 @@ class TaskListActivity : AppCompatActivity() {
         // Single observer for all tasks to avoid duplicate processing
         viewModel.allTasks.observe(this) { tasks ->
             Log.d("TaskListActivity", "Received ${tasks.size} tasks from ViewModel")
-            submitTasks(tasks)
-            updateEmptyState(tasks)
+            latestTasks = tasks
+            applyVisibleFilters()
             updateLocalStats(tasks)  // Update stats from local tasks as fallback
 
             // If no tasks loaded, show a helpful message about potential database access issues
@@ -189,6 +213,8 @@ class TaskListActivity : AppCompatActivity() {
 
     private fun updateOrchestratorDashboard(stats: DashboardSummary?) {
         if (stats == null) return
+        latestDashboardStats = stats
+        lastDiagnosticsMessage = null
 
         // Update all dashboard stats
         binding.totalProjectsCount.text = stats.projects.toString()
@@ -215,32 +241,26 @@ class TaskListActivity : AppCompatActivity() {
             else -> "No execution activity yet"
         }
 
-        val statsText = getString(
-            R.string.orchestrator_dashboard_stats,
-            stats.projects,
-            stats.tasks.total,
-            running,
-            pending,
-            stats.tasks.done,
-            stats.tasks.failed
-        )
-
-        binding.orchestratorStatsView.text = statsText
+        binding.orchestratorStatsView.text = buildDiagnosticsText()
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
+        renderOverviewDetails()
     }
 
     private fun updateOrchestratorWarning(warning: String?) {
+        lastDiagnosticsMessage = warning
         if (warning.isNullOrBlank()) {
+            binding.orchestratorStatsView.text = buildDiagnosticsText()
             return
         }
 
-        binding.orchestratorStatsView.text = "Orchestrator sync issue:\n$warning"
+        binding.orchestratorStatsView.text = buildDiagnosticsText()
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
         binding.executionSummaryView.text = "Sync problem detected"
     }
 
     private fun updateRecentActivity(activity: List<RecentActivity>) {
-        binding.recentActivityView.text = "Open a project to inspect logs, status, and task details."
+        latestRecentActivity = activity
+        renderOverviewDetails()
     }
 
     private fun updateLocalStats(tasks: List<Task>) {
@@ -283,7 +303,8 @@ class TaskListActivity : AppCompatActivity() {
             orchestratorApiClient?.getProjects()?.onSuccess { projects ->
                 runOnUiThread {
                     Log.d("TaskListActivity", "Loaded ${projects.size} projects from Orchestrator")
-                    projectProgressAdapter.submitList(projects)
+                    latestProjects = projects
+                    applyVisibleFilters()
 
                     // Fetch task counts for each project after adapter is updated
                     loadProjectTaskCounts(projects)
@@ -291,6 +312,7 @@ class TaskListActivity : AppCompatActivity() {
             }?.onFailure { error ->
                 Log.d("TaskListActivity", "Orchestrator projects unavailable: ${error.message}")
                 runOnUiThread {
+                    latestProjects = emptyList()
                     projectProgressAdapter.submitList(emptyList())
                     updateOrchestratorWarning(error.message ?: "Unable to load Orchestrator projects.")
                 }
@@ -318,34 +340,113 @@ class TaskListActivity : AppCompatActivity() {
                         if (position >= 0) {
                             status.tasks?.let { tasks ->
                                 Log.d("TaskListActivity", "Loaded stats for project $projectId: $tasks")
-                                projectProgressAdapter.updateProjectStats(
-                                    projectId,
-                                    ProjectProgressAdapter.ProjectStats(
-                                        running = tasks.running,
-                                        pending = tasks.pending,
-                                        completed = tasks.done,
-                                        total = tasks.total,
-                                        failed = tasks.failed,
-                                        activeSessions = status.activeSessions
-                                    )
+                                val statsData = ProjectProgressAdapter.ProjectStats(
+                                    running = tasks.running,
+                                    pending = tasks.pending,
+                                    completed = tasks.done,
+                                    total = tasks.total,
+                                    failed = tasks.failed,
+                                    activeSessions = status.activeSessions
                                 )
-                            } ?: projectProgressAdapter.updateProjectStats(
-                                projectId,
-                                ProjectProgressAdapter.ProjectStats()
-                            )
+                                projectStatsById[projectId] = statsData
+                                projectProgressAdapter.updateProjectStats(projectId, statsData)
+                            } ?: run {
+                                val statsData = ProjectProgressAdapter.ProjectStats()
+                                projectStatsById[projectId] = statsData
+                                projectProgressAdapter.updateProjectStats(projectId, statsData)
+                            }
+                            renderOverviewDetails()
                         }
                     }
                 }?.onFailure { error ->
                     Log.d("TaskListActivity", "Orchestrator status unavailable for project $projectId: ${error.message}")
                     runOnUiThread {
-                        projectProgressAdapter.updateProjectStats(
-                            projectId,
-                            ProjectProgressAdapter.ProjectStats()
-                        )
+                        val statsData = ProjectProgressAdapter.ProjectStats()
+                        projectStatsById[projectId] = statsData
+                        projectProgressAdapter.updateProjectStats(projectId, statsData)
+                        renderOverviewDetails()
                     }
                 }
             }
         }
+    }
+
+    private fun buildDiagnosticsText(): String {
+        val gatewayState = if (prefsManager.gatewayToken.isNotBlank()) "configured" else "missing"
+        val orchestratorState = if (latestDashboardStats != null) "reachable" else "unavailable"
+        val authState = when {
+            lastDiagnosticsMessage.isNullOrBlank() && latestDashboardStats != null -> "valid"
+            lastDiagnosticsMessage?.contains("401", ignoreCase = true) == true ||
+                    lastDiagnosticsMessage?.contains("unauthorized", ignoreCase = true) == true ||
+                    lastDiagnosticsMessage?.contains("invalid", ignoreCase = true) == true -> "invalid"
+            latestDashboardStats != null -> "valid"
+            else -> "unknown"
+        }
+        val activeSessions = latestDashboardStats?.sessions?.active ?: 0
+        val detailSuffix = lastDiagnosticsMessage?.let { "\nIssue: $it" } ?: ""
+
+        return "Gateway: $gatewayState\nOrchestrator: $orchestratorState\nMobile auth: $authState\nActive sessions: $activeSessions$detailSuffix"
+    }
+
+    private fun renderOverviewDetails() {
+        val blockers = projectProgressAdapter.currentList.mapNotNull { project ->
+            val stats = projectStatsById[project.getProjectId()] ?: return@mapNotNull null
+            when {
+                stats.failed > 0 -> BlockerItem(
+                    project = project,
+                    summary = "${project.name}: ${stats.failed} failed • ${stats.activeSessions} active session${if (stats.activeSessions == 1) "" else "s"}",
+                    severity = 0,
+                )
+                stats.running > 0 && stats.activeSessions > 0 -> BlockerItem(
+                    project = project,
+                    summary = "${project.name}: ${stats.running} running • ${stats.activeSessions} active session${if (stats.activeSessions == 1) "" else "s"}",
+                    severity = 1,
+                )
+                stats.pending > 0 -> BlockerItem(
+                    project = project,
+                    summary = "${project.name}: ${stats.pending} pending",
+                    severity = 2,
+                )
+                else -> null
+            }
+        }.sortedBy { it.severity }
+
+        primaryBlockerProject = blockers.firstOrNull()?.project
+        binding.blockersCard.isClickable = primaryBlockerProject != null
+        binding.blockersCard.isFocusable = primaryBlockerProject != null
+
+        binding.blockerSummaryView.text = when {
+            blockers.any { it.severity == 0 } -> "Needs attention now"
+            blockers.any { it.severity == 1 } -> "Watching active work"
+            blockers.any { it.severity == 2 } -> "Queued work waiting"
+            else -> "No blockers detected."
+        }
+        binding.blockerDetailsView.text = when {
+            blockers.isNotEmpty() -> buildString {
+                append(blockers.take(3).joinToString("\n") { it.summary })
+                primaryBlockerProject?.let {
+                    append("\n\nTap this card to open ")
+                    append(it.name)
+                }
+            }
+            else -> "Runs that need attention will appear here."
+        }
+
+        binding.recentActivityView.text = when {
+            blockers.isNotEmpty() -> blockers.take(3).joinToString("\n") { it.summary }
+            latestRecentActivity.isNotEmpty() -> latestRecentActivity.take(3).joinToString("\n\n") { activity ->
+                "[${activity.level}] ${activity.message}"
+            }
+            else -> "Open a project to inspect logs, status, checkpoints, and task details."
+        }
+    }
+
+    private fun openProject(project: Project) {
+        val intent = Intent(this, ProjectDetailActivity::class.java).apply {
+            putExtra("project_id", project.getProjectId())
+            putExtra("project_name", project.name)
+        }
+        startActivity(intent)
     }
 
     private fun dashboardSortRank(status: TaskStatus): Int {
@@ -372,6 +473,42 @@ class TaskListActivity : AppCompatActivity() {
 
     private fun updateEmptyState(tasks: List<Task>) {
         binding.emptyView.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun applyVisibleFilters() {
+        val query = binding.searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
+
+        val tasksForMode = when (currentTaskFilterMode) {
+            TaskFilterMode.ALL -> latestTasks
+            TaskFilterMode.PENDING -> latestTasks.filter { it.status == TaskStatus.PENDING }
+            TaskFilterMode.ACTIVE -> latestTasks.filter {
+                it.status == TaskStatus.IN_PROGRESS || it.status == TaskStatus.APPROVED
+            }
+        }
+
+        val visibleTasks = if (query.isBlank()) {
+            tasksForMode
+        } else {
+            tasksForMode.filter { task ->
+                task.title.lowercase().contains(query) ||
+                        task.description.lowercase().contains(query) ||
+                        task.status.name.lowercase().contains(query)
+            }
+        }
+        submitTasks(visibleTasks)
+        updateEmptyState(visibleTasks)
+
+        val visibleProjects = if (query.isBlank()) {
+            latestProjects
+        } else {
+            latestProjects.filter { project ->
+                project.name.lowercase().contains(query) ||
+                        (project.description?.lowercase()?.contains(query) == true) ||
+                        project.getProjectId().lowercase().contains(query)
+            }
+        }
+        projectProgressAdapter.submitList(visibleProjects)
+        renderOverviewDetails()
     }
 
     private fun approveTask(task: Task) {
@@ -427,15 +564,18 @@ class TaskListActivity : AppCompatActivity() {
                 true
             }
             R.id.action_filter_pending -> {
-                submitTasks(viewModel.pendingTasks.value.orEmpty())
+                currentTaskFilterMode = TaskFilterMode.PENDING
+                applyVisibleFilters()
                 true
             }
             R.id.action_filter_active -> {
-                submitTasks(viewModel.runningTasks.value.orEmpty())
+                currentTaskFilterMode = TaskFilterMode.ACTIVE
+                applyVisibleFilters()
                 true
             }
             R.id.action_filter_all -> {
-                submitTasks(viewModel.allTasks.value.orEmpty())
+                currentTaskFilterMode = TaskFilterMode.ALL
+                applyVisibleFilters()
                 true
             }
             else -> super.onOptionsItemSelected(item)

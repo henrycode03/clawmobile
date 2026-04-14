@@ -30,10 +30,12 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.activities.OnboardingActivity" android:exported="false" />
         <activity android:name=".ui.activities.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.activities.SessionsActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskListActivity" android:exported="false" />
         <activity android:name=".ui.tasks.ProjectDetailActivity" android:exported="false" />
+        <activity android:name=".ui.tasks.SessionDetailActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskDetailActivity" android:exported="false" />
         <activity android:name=".ui.tools.GitHubActivity" android:exported="false" />
 

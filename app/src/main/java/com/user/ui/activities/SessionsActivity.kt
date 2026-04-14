@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import androidx.core.widget.addTextChangedListener
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -42,6 +43,10 @@ class SessionsActivity : AppCompatActivity() {
         binding.sessionsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@SessionsActivity)
             adapter = sessionAdapter
+        }
+
+        binding.searchInput.addTextChangedListener { editable ->
+            viewModel.setQuery(editable?.toString().orEmpty())
         }
 
         viewModel.sessions.observe(this) { sessions ->
