@@ -31,13 +31,13 @@
 
             <ImageButton
                 android:id="@+id/pinProjectButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/pin_project"
                 android:padding="8dp"
-                android:src="@android:drawable/btn_star_big_off"
-                app:tint="@color/status_pending" />
+                android:src="@drawable/ic_star_outline"
+                app:tint="@color/timestamp_text" />
         </LinearLayout>
 
         <TextView

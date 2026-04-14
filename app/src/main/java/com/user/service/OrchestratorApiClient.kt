@@ -10,6 +10,8 @@ import com.user.data.OrchestTask
 import com.user.data.OrchestTaskResponse
 import com.user.data.MobileProjectsResponse
 import com.user.data.MobileCheckpointListResponse
+import com.user.data.MobileSessionListItem
+import com.user.data.MobileSessionsListResponse
 import com.user.data.MobileTaskDetailResponse
 import com.user.data.MobileTaskActionResponse
 import com.user.data.MobileSessionActionResponse
@@ -269,10 +271,15 @@ class OrchestratorApiClient(
             description = this.description,
             status = this.status.lowercase(),  // Normalize to lowercase
             projectId = this.projectId.toString(),
-            sessionId = null,
+            sessionId = this.latestSessionId?.toString(),
+            sessionName = this.latestSessionName,
+            sessionStatus = this.latestSessionStatus,
+            hasActiveSession = this.hasActiveSession,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt ?: this.createdAt,
-            priority = this.priority
+            priority = this.priority,
+            sequenceIndex = this.sequenceIndex,
+            sequenceTotal = this.sequenceTotal
         )
     }
 
@@ -378,6 +385,40 @@ class OrchestratorApiClient(
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching session summary for $sessionId: ${e.message}")
             buildFailure("Failed to load session summary for $sessionId.", e)
+        }
+    }
+
+    suspend fun listSessions(status: String? = null): Result<List<MobileSessionListItem>> = withContext(Dispatchers.IO) {
+        try {
+            val path = buildString {
+                append("sessions")
+                if (!status.isNullOrBlank()) {
+                    append("?status=")
+                    append(status)
+                }
+            }
+            val url = buildMobileUrl(path)
+            Log.d(TAG, "Fetching sessions from: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Sessions API failed (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileSessionsListResponse::class.java).sessions)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error fetching sessions: ${e.message}")
+            buildFailure("Failed to load sessions.", e)
         }
     }
 

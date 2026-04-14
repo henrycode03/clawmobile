@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.user.ClawMobileApplication
 import com.user.R
 import com.user.databinding.ActivitySessionsBinding
+import com.user.ui.CommandAssist
 import com.user.ui.SessionAdapter
 import com.user.viewmodel.SessionViewModel
 
@@ -52,7 +53,10 @@ class SessionsActivity : AppCompatActivity() {
                 ).show()
                 viewModel.refresh()
             },
-            isPinned = { session -> prefsManager.isSessionPinned(session.sessionId) }
+            isPinned = { session -> prefsManager.isSessionPinned(session.sessionId) },
+            onLongPress = { session ->
+                CommandAssist.showSessionActions(this, session.sessionId, session.title)
+            }
         )
 
         binding.sessionsRecyclerView.apply {

@@ -2,10 +2,11 @@ package com.user.ui.tasks
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.user.ClawMobileApplication
 import com.user.R
 import com.user.data.Task
@@ -23,11 +24,19 @@ import kotlinx.coroutines.launch
  */
 class TaskDetailActivity : AppCompatActivity() {
 
+    private enum class RecoveryAction {
+        RESUME_SESSION,
+        RETRY_TASK
+    }
+
     private lateinit var binding: ActivityTaskDetailBinding
     private lateinit var viewModel: TaskViewModel
     private var orchestratorClient: OrchestratorApiClient? = null
     private var currentTask: Task? = null
     private var sessionId: String = ""
+    private var recommendedRecoveryAction: RecoveryAction = RecoveryAction.RETRY_TASK
+    private var recoveryReason: String? = null
+    private var recoverySessionId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +85,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 binding.taskResultLabel.visibility = android.view.View.GONE
                 binding.taskError.visibility = android.view.View.GONE
                 binding.taskErrorLabel.visibility = android.view.View.GONE
+                binding.recoveryCard.visibility = View.GONE
                 binding.approveButton.visibility = android.view.View.GONE
                 binding.rejectButton.visibility = android.view.View.GONE
                 binding.startButton.visibility = android.view.View.GONE
@@ -114,24 +124,6 @@ class TaskDetailActivity : AppCompatActivity() {
         updateStatusBadge(task.status)
 
         // Update result and error
-        val hasResult = !task.result.isNullOrBlank()
-        binding.taskResult.text = OutputHighlighter.render(
-            this,
-            task.result ?: "",
-            isError = false
-        )
-        binding.taskResultLabel.visibility = if (hasResult) android.view.View.VISIBLE else android.view.View.GONE
-        binding.taskResult.visibility = if (hasResult) android.view.View.VISIBLE else android.view.View.GONE
-
-        val hasError = !task.error.isNullOrBlank()
-        binding.taskError.text = OutputHighlighter.render(
-            this,
-            task.error ?: "",
-            isError = true
-        )
-        binding.taskErrorLabel.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
-        binding.taskError.visibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
-
         val failureSummary = if (task.status == TaskStatus.FAILED || task.status == TaskStatus.TIMEOUT) {
             FailureSummary.summarizeTaskFailure(task.error, task.result)
         } else {
@@ -141,8 +133,179 @@ class TaskDetailActivity : AppCompatActivity() {
         binding.failureSummaryCard.visibility =
             if (failureSummary.isNullOrBlank()) android.view.View.GONE else android.view.View.VISIBLE
 
+        bindRawOutput(task)
+
+        updateRecoveryState(task)
+
         // Show/hide action buttons based on status
         updateActionButtons(task.status)
+    }
+
+    private fun bindRawOutput(task: Task) {
+        val resultText = task.result?.trim().orEmpty()
+        val errorText = task.error?.trim().orEmpty()
+        val isFailureState = task.status == TaskStatus.FAILED || task.status == TaskStatus.TIMEOUT
+        val resultDuplicatesError = resultText.isNotBlank() && errorText.isNotBlank() &&
+                textsAreEffectivelySame(resultText, errorText)
+
+        val primaryLabel: String
+        val primaryText: String
+        val primaryIsError: Boolean
+        val secondaryLabel: String?
+        val secondaryText: String?
+        val secondaryIsError: Boolean
+
+        if (isFailureState && errorText.isNotBlank()) {
+            primaryLabel = getString(R.string.task_output_error_primary)
+            primaryText = errorText
+            primaryIsError = true
+            if (resultText.isNotBlank() && !resultDuplicatesError) {
+                secondaryLabel = getString(R.string.task_output_recent_output)
+                secondaryText = resultText
+                secondaryIsError = false
+            } else {
+                secondaryLabel = null
+                secondaryText = null
+                secondaryIsError = false
+            }
+        } else if (resultText.isNotBlank()) {
+            primaryLabel = getString(R.string.task_output_result)
+            primaryText = resultText
+            primaryIsError = false
+            if (errorText.isNotBlank() && !resultDuplicatesError) {
+                secondaryLabel = getString(R.string.task_output_error_secondary)
+                secondaryText = errorText
+                secondaryIsError = true
+            } else {
+                secondaryLabel = null
+                secondaryText = null
+                secondaryIsError = false
+            }
+        } else if (errorText.isNotBlank()) {
+            primaryLabel = getString(R.string.task_output_error_primary)
+            primaryText = errorText
+            primaryIsError = true
+            secondaryLabel = null
+            secondaryText = null
+            secondaryIsError = false
+        } else {
+            primaryLabel = ""
+            primaryText = ""
+            primaryIsError = false
+            secondaryLabel = null
+            secondaryText = null
+            secondaryIsError = false
+        }
+
+        val hasPrimary = primaryText.isNotBlank()
+        binding.taskResultLabel.text = primaryLabel
+        binding.taskResult.text = OutputHighlighter.render(this, primaryText, isError = primaryIsError)
+        binding.taskResultLabel.visibility = if (hasPrimary) View.VISIBLE else View.GONE
+        binding.taskResult.visibility = if (hasPrimary) View.VISIBLE else View.GONE
+
+        val hasSecondary = !secondaryText.isNullOrBlank()
+        binding.taskErrorLabel.text = secondaryLabel.orEmpty()
+        binding.taskError.text = OutputHighlighter.render(
+            this,
+            secondaryText.orEmpty(),
+            isError = secondaryIsError
+        )
+        binding.taskErrorLabel.visibility = if (hasSecondary) View.VISIBLE else View.GONE
+        binding.taskError.visibility = if (hasSecondary) View.VISIBLE else View.GONE
+    }
+
+    private fun textsAreEffectivelySame(first: String, second: String): Boolean {
+        val normalizedFirst = normalizeForComparison(first)
+        val normalizedSecond = normalizeForComparison(second)
+        return normalizedFirst == normalizedSecond ||
+                normalizedFirst.contains(normalizedSecond) ||
+                normalizedSecond.contains(normalizedFirst)
+    }
+
+    private fun normalizeForComparison(value: String): String {
+        return value
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .lowercase()
+    }
+
+    private fun updateRecoveryState(task: Task) {
+        val linkedSessionId = task.sessionId?.takeIf { it.isNotBlank() }
+        if (task.status != TaskStatus.FAILED && task.status != TaskStatus.TIMEOUT) {
+            recoverySessionId = linkedSessionId
+            recoveryReason = null
+            binding.recoveryCard.visibility = View.GONE
+            return
+        }
+
+        if (linkedSessionId == null || orchestratorClient == null) {
+            recommendedRecoveryAction = RecoveryAction.RETRY_TASK
+            recoverySessionId = linkedSessionId
+            recoveryReason = getString(R.string.recovery_retry_reason)
+            renderRecoveryCard()
+            return
+        }
+
+        recoverySessionId = linkedSessionId
+        binding.recoveryCard.visibility = View.VISIBLE
+        binding.recoveryActionTitle.text = getString(R.string.recovery_loading_title)
+        binding.recoveryActionSummary.text = getString(R.string.recovery_loading_message)
+        loadRecoveryRecommendation(linkedSessionId)
+    }
+
+    private fun loadRecoveryRecommendation(linkedSessionId: String) {
+        val client = orchestratorClient ?: return
+        lifecycleScope.launch {
+            val summaryResult = client.getSessionSummary(linkedSessionId)
+            val checkpointsResult = client.getSessionCheckpoints(linkedSessionId)
+
+            val checkpointCount = checkpointsResult.getOrNull()?.totalCount ?: 0
+            val sessionStatus = summaryResult.getOrNull()?.status?.lowercase()
+
+            recommendedRecoveryAction = if (
+                checkpointCount > 0 && sessionStatus != "running" && sessionStatus != "completed"
+            ) {
+                RecoveryAction.RESUME_SESSION
+            } else {
+                RecoveryAction.RETRY_TASK
+            }
+
+            recoveryReason = when {
+                checkpointCount > 0 && recommendedRecoveryAction == RecoveryAction.RESUME_SESSION -> {
+                    resources.getQuantityString(
+                        R.plurals.recovery_resume_reason,
+                        checkpointCount,
+                        checkpointCount
+                    )
+                }
+                sessionStatus == "running" -> getString(R.string.recovery_running_reason)
+                sessionStatus == "completed" -> getString(R.string.recovery_completed_reason)
+                else -> getString(R.string.recovery_retry_reason)
+            }
+
+            renderRecoveryCard()
+            currentTask?.let { updateActionButtons(it.status) }
+        }
+    }
+
+    private fun renderRecoveryCard() {
+        binding.recoveryCard.visibility = View.VISIBLE
+        when (recommendedRecoveryAction) {
+            RecoveryAction.RESUME_SESSION -> {
+                binding.recoveryActionTitle.text = getString(R.string.recovery_resume_title)
+                binding.recoveryActionSummary.text = getString(
+                    R.string.recovery_resume_message,
+                    recoveryReason ?: getString(R.string.recovery_resume_reason_fallback)
+                )
+            }
+            RecoveryAction.RETRY_TASK -> {
+                binding.recoveryActionTitle.text = getString(R.string.recovery_retry_title)
+                binding.recoveryActionSummary.text = getString(
+                    R.string.recovery_retry_message,
+                    recoveryReason ?: getString(R.string.recovery_retry_reason)
+                )
+            }
+        }
     }
 
     private fun updateStatusBadge(status: TaskStatus) {
@@ -215,8 +378,13 @@ class TaskDetailActivity : AppCompatActivity() {
                 rejectBtn.visibility = android.view.View.GONE
                 startBtn.visibility =
                     if (orchestratorClient != null) android.view.View.VISIBLE else android.view.View.GONE
-                startBtn.text = getString(R.string.retry_task)
-                startBtn.setOnClickListener { confirmRetryTask() }
+                if (recommendedRecoveryAction == RecoveryAction.RESUME_SESSION && recoverySessionId != null) {
+                    startBtn.text = getString(R.string.resume_session_action)
+                    startBtn.setOnClickListener { confirmResumeSession(recoverySessionId!!) }
+                } else {
+                    startBtn.text = getString(R.string.retry_task)
+                    startBtn.setOnClickListener { confirmRetryTask() }
+                }
             }
             TaskStatus.COMPLETED, TaskStatus.REJECTED -> {
                 approveBtn.visibility = android.view.View.GONE
@@ -233,6 +401,17 @@ class TaskDetailActivity : AppCompatActivity() {
             .setMessage(R.string.retry_task_message)
             .setPositiveButton(R.string.retry_task) { _, _ ->
                 retryTask(task)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmResumeSession(linkedSessionId: String) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.resume_session_title)
+            .setMessage(R.string.resume_session_message)
+            .setPositiveButton(R.string.resume_session_action) { _, _ ->
+                resumeSession(linkedSessionId)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -265,6 +444,32 @@ class TaskDetailActivity : AppCompatActivity() {
                     Toast.makeText(
                         this@TaskDetailActivity,
                         error.message ?: getString(R.string.retry_task_failed),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
+    }
+
+    private fun resumeSession(linkedSessionId: String) {
+        val client = orchestratorClient ?: return
+        binding.startButton.isEnabled = false
+        lifecycleScope.launch {
+            client.resumeSession(linkedSessionId)
+                .onSuccess { response ->
+                    binding.startButton.isEnabled = true
+                    Toast.makeText(
+                        this@TaskDetailActivity,
+                        response.message.ifBlank { getString(R.string.resume_session_success) },
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    currentTask = currentTask?.copy(status = TaskStatus.IN_PROGRESS, error = null)
+                    currentTask?.let(::bindTask)
+                }
+                .onFailure { error ->
+                    binding.startButton.isEnabled = true
+                    Toast.makeText(
+                        this@TaskDetailActivity,
+                        error.message ?: getString(R.string.resume_session_failed),
                         Toast.LENGTH_LONG
                     ).show()
                 }

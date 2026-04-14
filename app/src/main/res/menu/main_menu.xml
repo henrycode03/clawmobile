@@ -32,6 +32,11 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_code_block"
+        android:title="Code"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_settings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="Settings"

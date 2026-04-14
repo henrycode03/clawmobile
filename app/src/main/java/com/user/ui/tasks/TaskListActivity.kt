@@ -17,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
 import com.user.data.DashboardSummary
+import com.user.data.MobileSessionListItem
 import com.user.data.RecentActivity
 import com.user.data.OrchestTask
 import com.user.data.PrefsManager
@@ -25,6 +26,7 @@ import com.user.data.Task
 import com.user.data.TaskStatus
 import com.user.databinding.ActivityTaskListBinding
 import com.user.service.OrchestratorApiClient
+import com.user.ui.CommandAssist
 import com.user.ui.tasks.ProjectProgressAdapter
 import com.user.viewmodel.TaskViewModel
 import com.user.viewmodel.TaskViewModelFactory
@@ -60,6 +62,7 @@ class TaskListActivity : AppCompatActivity() {
         val state: ControlPlaneState,
         val title: String,
         val details: String,
+        val help: String,
     )
 
     private lateinit var binding: ActivityTaskListBinding
@@ -75,7 +78,9 @@ class TaskListActivity : AppCompatActivity() {
     private var primaryBlockerProject: Project? = null
     private var latestTasks: List<Task> = emptyList()
     private var latestProjects: List<Project> = emptyList()
+    private var latestSessions: List<MobileSessionListItem> = emptyList()
     private var currentTaskFilterMode: TaskFilterMode = TaskFilterMode.ALL
+    private var latestDiagnosticsSnapshot: DiagnosticsSnapshot? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,6 +104,9 @@ class TaskListActivity : AppCompatActivity() {
         binding.searchInput.addTextChangedListener {
             applyVisibleFilters()
         }
+        binding.latestFailureView.setOnClickListener { openLatestFailure() }
+        binding.runningSessionView.setOnClickListener { openRunningSession() }
+        binding.resumableSessionView.setOnClickListener { openResumableSession() }
 
         setupRecyclerView()
         setupProjectRecyclerView()
@@ -156,7 +164,10 @@ class TaskListActivity : AppCompatActivity() {
             onApproveClick = { task -> approveTask(task) },
             onRejectClick = { task -> rejectTask(task) },
             onStartClick = { task -> startTask(task) },
-            onViewClick = { task -> viewTaskDetails(task) }
+            onViewClick = { task -> viewTaskDetails(task) },
+            onLongPress = { task ->
+                CommandAssist.showTaskActions(this, task.taskId, task.title)
+            }
         )
 
         binding.recyclerView.apply {
@@ -169,7 +180,10 @@ class TaskListActivity : AppCompatActivity() {
         projectProgressAdapter = ProjectProgressAdapter(
             onProjectClickListener = { project -> openProject(project) },
             onProjectPinClickListener = { project -> toggleProjectPin(project) },
-            isProjectPinned = { project -> prefsManager.isProjectPinned(project.getProjectId()) }
+            isProjectPinned = { project -> prefsManager.isProjectPinned(project.getProjectId()) },
+            onProjectLongClickListener = { project ->
+                CommandAssist.showProjectActions(this, project.getProjectId(), project.name)
+            }
         )
         binding.projectsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@TaskListActivity)
@@ -318,6 +332,7 @@ class TaskListActivity : AppCompatActivity() {
                     Log.d("TaskListActivity", "Loaded ${projects.size} projects from Orchestrator")
                     latestProjects = sortProjectsForDisplay(projects)
                     applyVisibleFilters()
+                    loadRecentSessions()
 
                     // Fetch task counts for each project after adapter is updated
                     loadProjectTaskCounts(latestProjects)
@@ -329,6 +344,18 @@ class TaskListActivity : AppCompatActivity() {
                     projectProgressAdapter.submitList(emptyList())
                     updateOrchestratorWarning(error.message ?: "Unable to load Orchestrator projects.")
                 }
+            }
+        }
+    }
+
+    private fun loadRecentSessions() {
+        CoroutineScope(Dispatchers.Main).launch {
+            orchestratorApiClient?.listSessions()?.onSuccess { sessions ->
+                latestSessions = sessions
+                renderOverviewDetails()
+            }?.onFailure {
+                latestSessions = emptyList()
+                renderOverviewDetails()
             }
         }
     }
@@ -394,7 +421,8 @@ class TaskListActivity : AppCompatActivity() {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.NOT_CONFIGURED,
                 title = "Control plane not configured",
-                details = "Gateway token or Orchestrator URL/API key is missing.\nNext: open Settings and finish Orchestrator setup."
+                details = "Gateway token or Orchestrator URL/API key is missing.\nNext: open Settings and finish Orchestrator setup.",
+                help = "Still works: local task list, local task detail, search, and pinned items.\nBlocked: live dashboard sync, project status, sessions, resume/retry actions, and blockers from Orchestrator."
             )
         }
 
@@ -402,7 +430,8 @@ class TaskListActivity : AppCompatActivity() {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.NOT_CONFIGURED,
                 title = "Gateway token missing",
-                details = "ClawMobile cannot issue reliable control commands without the shared token.\nNext: open Settings and add the Gateway Token."
+                details = "ClawMobile cannot issue reliable control commands without the shared token.\nNext: open Settings and add the Gateway Token.",
+                help = "Still works: browsing cached/local task data.\nBlocked: mobile commands, session control, and authenticated Orchestrator sync."
             )
         }
 
@@ -415,7 +444,8 @@ class TaskListActivity : AppCompatActivity() {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.AUTH_ISSUE,
                 title = "Mobile auth needs attention",
-                details = "Gateway is configured, but Orchestrator rejected the shared key.\nActive sessions: $activeSessions\nIssue: $issue"
+                details = "Gateway is configured, but Orchestrator rejected the shared key.\nActive sessions: $activeSessions\nIssue: $issue",
+                help = "Still works: existing local task browsing and search.\nBlocked: live project/session refresh and control actions until the shared key matches again."
             )
         }
 
@@ -423,21 +453,27 @@ class TaskListActivity : AppCompatActivity() {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.DEGRADED,
                 title = "Orchestrator currently unreachable",
-                details = "ClawMobile can still show local data, but dashboard sync is degraded.\nNext: check backend status, server URL, or network path.${issue?.let { "\nIssue: $it" } ?: ""}"
+                details = "ClawMobile can still show local data, but dashboard sync is degraded.\nNext: check backend status, server URL, or network path.${issue?.let { "\nIssue: $it" } ?: ""}",
+                help = "Still works: local task list, search, pinning, and any already-open detail screens.\nBlocked: fresh project/session data, recent execution cards, and remote recovery actions."
             )
         }
 
         return DiagnosticsSnapshot(
             state = ControlPlaneState.HEALTHY,
             title = "Control plane healthy",
-            details = "Gateway configured\nOrchestrator reachable\nMobile auth valid\nActive sessions: $activeSessions"
+            details = "Gateway configured\nOrchestrator reachable\nMobile auth valid\nActive sessions: $activeSessions",
+            help = "Live project status, blockers, recent execution, and recovery actions are available."
         )
     }
 
     private fun renderDiagnosticsCard() {
         val snapshot = buildDiagnosticsSnapshot()
+        latestDiagnosticsSnapshot = snapshot
         binding.orchestratorStatsView.text = "${snapshot.title}\n${snapshot.details}"
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
+        binding.orchestratorHelpView.text = snapshot.help
+        binding.orchestratorHelpView.visibility =
+            if (snapshot.state == ControlPlaneState.HEALTHY) View.GONE else View.VISIBLE
         binding.orchestratorStatsView.setBackgroundColor(
             ContextCompat.getColor(
                 this,
@@ -454,6 +490,7 @@ class TaskListActivity : AppCompatActivity() {
     }
 
     private fun renderOverviewDetails() {
+        val diagnostics = latestDiagnosticsSnapshot ?: buildDiagnosticsSnapshot()
         val blockers = projectProgressAdapter.currentList.mapNotNull { project ->
             val stats = projectStatsById[project.getProjectId()] ?: return@mapNotNull null
             when {
@@ -477,16 +514,20 @@ class TaskListActivity : AppCompatActivity() {
         }.sortedBy { it.severity }
 
         primaryBlockerProject = blockers.firstOrNull()?.project
-        binding.blockersCard.isClickable = primaryBlockerProject != null
-        binding.blockersCard.isFocusable = primaryBlockerProject != null
+        val canOpenBlocker = primaryBlockerProject != null && diagnostics.state == ControlPlaneState.HEALTHY
+        binding.blockersCard.isClickable = canOpenBlocker
+        binding.blockersCard.isFocusable = canOpenBlocker
 
         binding.blockerSummaryView.text = when {
+            diagnostics.state != ControlPlaneState.HEALTHY -> "Remote blocker scan unavailable"
             blockers.any { it.severity == 0 } -> "Needs attention now"
             blockers.any { it.severity == 1 } -> "Watching active work"
             blockers.any { it.severity == 2 } -> "Queued work waiting"
             else -> "No blockers detected."
         }
         binding.blockerDetailsView.text = when {
+            diagnostics.state != ControlPlaneState.HEALTHY ->
+                "ClawMobile cannot verify cross-project blockers right now.\nYou can still browse local tasks or open Settings to restore the control plane."
             blockers.isNotEmpty() -> buildString {
                 append(blockers.take(3).joinToString("\n") { it.summary })
                 primaryBlockerProject?.let {
@@ -498,12 +539,135 @@ class TaskListActivity : AppCompatActivity() {
         }
 
         binding.recentActivityView.text = when {
-            blockers.isNotEmpty() -> blockers.take(3).joinToString("\n") { it.summary }
+            diagnostics.state == ControlPlaneState.NOT_CONFIGURED ->
+                "Finish setup first. Once Orchestrator is connected, this area will show failures, live sessions, and resumable work."
+            diagnostics.state == ControlPlaneState.AUTH_ISSUE ->
+                "The shared mobile key was rejected. Fix the key in Settings, then refresh to restore live execution visibility."
+            diagnostics.state == ControlPlaneState.DEGRADED ->
+                "Remote execution details are temporarily unavailable. You can still browse local tasks while the backend or network path recovers."
             latestRecentActivity.isNotEmpty() -> latestRecentActivity.take(3).joinToString("\n\n") { activity ->
                 "[${activity.level}] ${activity.message}"
             }
-            else -> "Open a project to inspect logs, status, checkpoints, and task details."
+            latestProjects.isNotEmpty() ->
+                "Open a project to inspect logs, status, checkpoints, and recovery actions."
+            else -> "Create or sync a project to see live execution details here."
         }
+
+        val latestFailure = latestSessions.firstOrNull { session ->
+            session.status.equals("failed", true) || session.status.equals("stopped", true)
+        }
+        val showUnavailableOverviewCards = diagnostics.state != ControlPlaneState.HEALTHY
+        renderOverviewCard(
+            textView = binding.latestFailureView,
+            title = when {
+                showUnavailableOverviewCards -> "Latest failure unavailable"
+                latestFailure != null -> "Latest failure: ${latestFailure.name}"
+                else -> ""
+            },
+            details = when {
+                showUnavailableOverviewCards ->
+                    "Restore connection or auth to inspect the newest failed run."
+                latestFailure != null ->
+                    "#${latestFailure.id} • ${latestFailure.status}"
+                else -> ""
+            },
+            visible = showUnavailableOverviewCards || latestFailure != null,
+            enabled = diagnostics.state == ControlPlaneState.HEALTHY && latestFailure != null
+        )
+
+        val runningSession = latestSessions.firstOrNull { session ->
+            session.status.equals("running", true) || session.isActive
+        }
+        renderOverviewCard(
+            textView = binding.runningSessionView,
+            title = when {
+                showUnavailableOverviewCards -> "Live session unavailable"
+                runningSession != null -> "Running now: ${runningSession.name}"
+                else -> "No active session"
+            },
+            details = when {
+                showUnavailableOverviewCards ->
+                    "Local browsing still works, but live session monitoring is paused."
+                runningSession != null ->
+                    "#${runningSession.id} • tap to open"
+                else -> "Nothing is actively running right now."
+            },
+            visible = showUnavailableOverviewCards || runningSession != null || latestProjects.isNotEmpty(),
+            enabled = diagnostics.state == ControlPlaneState.HEALTHY && runningSession != null
+        )
+
+        val resumableSession = latestSessions.firstOrNull { session ->
+            session.status.equals("paused", true) || session.status.equals("stopped", true)
+        }
+        renderOverviewCard(
+            textView = binding.resumableSessionView,
+            title = when {
+                showUnavailableOverviewCards -> "Resumable work unavailable"
+                resumableSession != null -> "Best resumable: ${resumableSession.name}"
+                else -> ""
+            },
+            details = when {
+                showUnavailableOverviewCards ->
+                    "Reconnect to check which stopped run has the safest checkpoint."
+                resumableSession != null ->
+                    "#${resumableSession.id} • ${resumableSession.status}"
+                else -> ""
+            },
+            visible = showUnavailableOverviewCards || resumableSession != null,
+            enabled = diagnostics.state == ControlPlaneState.HEALTHY && resumableSession != null
+        )
+    }
+
+    private fun renderOverviewCard(
+        textView: TextView,
+        title: String,
+        details: String,
+        visible: Boolean,
+        enabled: Boolean,
+    ) {
+        textView.visibility = if (visible) View.VISIBLE else View.GONE
+        if (!visible) {
+            return
+        }
+
+        textView.text = if (details.isBlank()) {
+            title
+        } else {
+            "$title\n$details"
+        }
+        textView.alpha = if (enabled) 1f else 0.9f
+        textView.isClickable = enabled
+        textView.isFocusable = enabled
+    }
+
+    private fun openLatestFailure() {
+        val session = latestSessions.firstOrNull {
+            it.status.equals("failed", true) || it.status.equals("stopped", true)
+        } ?: return
+        openSession(session)
+    }
+
+    private fun openRunningSession() {
+        val session = latestSessions.firstOrNull {
+            it.status.equals("running", true) || it.isActive
+        } ?: return
+        openSession(session)
+    }
+
+    private fun openResumableSession() {
+        val session = latestSessions.firstOrNull {
+            it.status.equals("paused", true) || it.status.equals("stopped", true)
+        } ?: return
+        openSession(session)
+    }
+
+    private fun openSession(session: MobileSessionListItem) {
+        startActivity(
+            Intent(this, SessionDetailActivity::class.java).apply {
+                putExtra("session_id", session.id.toString())
+                putExtra("session_name", session.name)
+            }
+        )
     }
 
     private fun openProject(project: Project) {

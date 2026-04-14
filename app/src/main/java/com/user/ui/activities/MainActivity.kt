@@ -43,6 +43,10 @@ import com.user.viewmodel.ChatViewModel
  * Main chat activity - primary interface for user interaction
  */
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_PREFILL_MESSAGE = "prefill_message"
+    }
+
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var chatAdapter: ChatAdapter
@@ -51,13 +55,13 @@ class MainActivity : AppCompatActivity() {
     private var commandsVisible: Boolean = false
     private val commandTemplates = listOf(
         "show blockers all",
-        "show blockers project <project_id>",
-        "open project <project_id>",
-        "status project <project_id>",
-        "status session <session_id>",
-        "resume session <session_id>",
-        "stop session <session_id>",
         "diagnose task <task_id>",
+        "what should I do next for project <project_id>",
+        "find the best session to resume for project <project_id>",
+        "summarize why project <project_id> is stuck",
+        "what failed most recently",
+        "compare recent failures across projects",
+        "resume session <session_id>",
     )
     private val inputHistory = mutableListOf<String>()
     private var historyIndex = -1
@@ -112,6 +116,7 @@ class MainActivity : AppCompatActivity() {
         setupQuickCommandChips()
         setupCommandSuggestions()
         updateAttachmentUi()
+        handlePrefillIntent(intent)
 
         val sessionId = intent.getStringExtra("session_id")
         val sessionTitle = intent.getStringExtra("session_title")
@@ -127,6 +132,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePrefillIntent(intent)
     }
 
     private fun setupRecyclerView() {
@@ -215,16 +226,16 @@ class MainActivity : AppCompatActivity() {
             prefillCommand("show blockers all")
         }
         binding.chipOpenProject.setOnClickListener {
-            prefillCommand("open project <project_id>")
+            prefillCommand("what should I do next for project <project_id>")
         }
         binding.chipResumeSession.setOnClickListener {
-            prefillCommand("resume session <session_id>")
+            prefillCommand("find the best session to resume for project <project_id>")
         }
         binding.chipDiagnoseTask.setOnClickListener {
             prefillCommand("diagnose task <task_id>")
         }
         binding.chipStatusSession.setOnClickListener {
-            prefillCommand("status session <session_id>")
+            prefillCommand("what failed most recently")
         }
     }
 
@@ -237,12 +248,9 @@ class MainActivity : AppCompatActivity() {
         (binding.messageEditText as? AutoCompleteTextView)?.apply {
             setAdapter(adapter)
             threshold = 1
-            setOnItemClickListener { _, _, _, _ ->
-                Toast.makeText(
-                    this@MainActivity,
-                    getString(R.string.command_suggestion_selected),
-                    Toast.LENGTH_SHORT
-                ).show()
+            setOnItemClickListener { _, _, position, _ ->
+                val selectedTemplate = adapter.getItem(position) ?: return@setOnItemClickListener
+                applyCommandTemplate(selectedTemplate)
             }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -263,13 +271,14 @@ class MainActivity : AppCompatActivity() {
         if (text.isEmpty()) return false
         val normalized = text.lowercase()
         return normalized.startsWith("show") ||
-                normalized.startsWith("open") ||
-                normalized.startsWith("status") ||
+                normalized.startsWith("diagnose") ||
+                normalized.startsWith("what") ||
+                normalized.startsWith("find") ||
+                normalized.startsWith("summarize") ||
+                normalized.startsWith("compare") ||
                 normalized.startsWith("resume") ||
-                normalized.startsWith("stop") ||
                 normalized.startsWith("retry") ||
-                normalized.startsWith("restart") ||
-                normalized.startsWith("diagnose")
+                normalized.startsWith("restart")
     }
 
     private fun prefillCommand(command: String) {
@@ -282,6 +291,68 @@ class MainActivity : AppCompatActivity() {
             commandsVisible = false
             updateCommandChipVisibility()
         }
+    }
+
+    private fun handlePrefillIntent(intent: Intent?) {
+        val command = intent?.getStringExtra(EXTRA_PREFILL_MESSAGE)?.takeIf { it.isNotBlank() } ?: return
+        prefillCommand(command)
+        intent.removeExtra(EXTRA_PREFILL_MESSAGE)
+    }
+
+    private fun applyCommandTemplate(template: String) {
+        binding.messageEditText.setText(template)
+        binding.messageEditText.requestFocus()
+        val placeholderStart = template.indexOf('<')
+        val placeholderEnd = template.indexOf('>').takeIf { it > placeholderStart }
+        if (placeholderStart >= 0 && placeholderEnd != null) {
+            binding.messageEditText.setSelection(placeholderStart, placeholderEnd + 1)
+            Toast.makeText(
+                this,
+                getString(R.string.command_template_ready),
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            binding.messageEditText.setSelection(template.length)
+            Toast.makeText(
+                this,
+                getString(R.string.command_suggestion_selected),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
+    }
+
+    private fun insertCodeBlock() {
+        val editText = binding.messageEditText
+        val currentText = editText.text?.toString().orEmpty()
+        val start = editText.selectionStart.coerceAtLeast(0)
+        val end = editText.selectionEnd.coerceAtLeast(0)
+        val selectionStart = minOf(start, end)
+        val selectionEnd = maxOf(start, end)
+        val selectedText = currentText.substring(selectionStart, selectionEnd)
+
+        val replacement = if (selectedText.isNotEmpty()) {
+            "```\n$selectedText\n```"
+        } else {
+            "```\n\n```"
+        }
+
+        val updatedText = buildString {
+            append(currentText.substring(0, selectionStart))
+            append(replacement)
+            append(currentText.substring(selectionEnd))
+        }
+        editText.setText(updatedText)
+
+        if (selectedText.isNotEmpty()) {
+            val cursor = selectionStart + replacement.length
+            editText.setSelection(cursor)
+        } else {
+            val cursor = selectionStart + 4
+            editText.setSelection(cursor)
+        }
+        editText.requestFocus()
+        Toast.makeText(this, getString(R.string.code_block_inserted), Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleCommandChips() {
@@ -561,6 +632,10 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_commands -> {
                 toggleCommandChips()
+                true
+            }
+            R.id.action_code_block -> {
+                insertCodeBlock()
                 true
             }
             R.id.action_settings -> {

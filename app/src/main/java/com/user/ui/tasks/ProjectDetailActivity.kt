@@ -12,6 +12,7 @@ import com.user.R
 import com.user.data.ProjectSessionSummary
 import com.user.databinding.ActivityProjectDetailBinding
 import com.user.service.OrchestratorApiClient
+import com.user.ui.CommandAssist
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,13 +50,18 @@ class ProjectDetailActivity : AppCompatActivity() {
     }
 
     private fun setupTaskList() {
-        adapter = ProjectTaskAdapter { task ->
-            val intent = Intent(this, TaskDetailActivity::class.java).apply {
-                putExtra("task_id", task.taskId)
-                putExtra("session_id", "")
+        adapter = ProjectTaskAdapter(
+            onTaskClick = { task ->
+                val intent = Intent(this, TaskDetailActivity::class.java).apply {
+                    putExtra("task_id", task.taskId)
+                    putExtra("session_id", "")
+                }
+                startActivity(intent)
+            },
+            onTaskLongPress = { task ->
+                CommandAssist.showTaskActions(this, task.taskId, task.title)
             }
-            startActivity(intent)
-        }
+        )
 
         binding.projectTasksRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.projectTasksRecyclerView.adapter = adapter
@@ -75,11 +81,11 @@ class ProjectDetailActivity : AppCompatActivity() {
                 binding.projectStatusSummary.text = when {
                     status.tasks == null -> "No execution data yet"
                     status.tasks.failed > 0 ->
-                        "${status.tasks.failed} failed • ${status.tasks.done} done • ${status.activeSessions} active session(s)"
+                        "${status.tasks.failed} failed • ${status.tasks.done} done"
                     status.tasks.running > 0 ->
-                        "${status.tasks.running} running • ${status.tasks.pending} pending • ${status.activeSessions} active session(s)"
+                        "${status.tasks.running} running • ${status.tasks.pending} waiting"
                     status.tasks.total > 0 ->
-                        "${status.tasks.done} done • ${status.tasks.pending} pending • ${status.tasks.total} total"
+                        "${status.tasks.done} done • ${status.tasks.pending} waiting • ${status.tasks.total} total"
                     else -> "No tasks yet"
                 }
 
@@ -92,9 +98,18 @@ class ProjectDetailActivity : AppCompatActivity() {
                 }
 
                 val activeSessionSummary = if (status.sessions.isEmpty()) {
-                    "No active sessions right now"
+                    "No recent sessions right now"
                 } else {
-                    "${status.activeSessions} active session(s)"
+                    buildString {
+                        append("${status.activeSessions} active")
+                        if (status.recentSessions > 0) {
+                            append(" • ${status.recentSessions} recent")
+                        }
+                        append(" session")
+                        if (status.recentSessions != 1 || status.activeSessions != 1) {
+                            append("s")
+                        }
+                    }
                 }
                 binding.activeSessionsSummary.text = activeSessionSummary
                 renderActiveSessions(status.sessions)
@@ -133,13 +148,7 @@ class ProjectDetailActivity : AppCompatActivity() {
             client.getProjectTasks(projectId).onSuccess { tasks ->
                 val sorted = tasks.sortedWith(
                     compareBy<com.user.data.OrchestTask> {
-                        when (it.status.lowercase()) {
-                            "failed" -> 0
-                            "running", "executing", "in_progress" -> 1
-                            "pending" -> 2
-                            "done", "completed", "success" -> 3
-                            else -> 4
-                        }
+                        it.sequenceIndex ?: Int.MAX_VALUE
                     }.thenBy { it.title.lowercase() }
                 )
                 adapter.submitList(sorted)
@@ -164,9 +173,17 @@ class ProjectDetailActivity : AppCompatActivity() {
 
         sessions.forEach { session ->
             val sessionView = TextView(this).apply {
-                text = "${session.name} • ${session.status}"
+                val activeMarker = if (session.isActive) " • live" else ""
+                val shortName = session.name.takeIf { it.length <= 42 } ?: "${session.name.take(39)}..."
+                val statusLabel = session.status.replace('_', ' ').replaceFirstChar { it.uppercase() }
+                text = "$shortName\n#${session.id} • $statusLabel$activeMarker"
                 textSize = 13f
-                setTextColor(ContextCompat.getColor(context, R.color.status_running))
+                setTextColor(
+                    ContextCompat.getColor(
+                        context,
+                        if (session.isActive) R.color.status_running else R.color.text_secondary
+                    )
+                )
                 setPadding(0, 8, 0, 8)
                 isClickable = true
                 isFocusable = true
@@ -176,6 +193,14 @@ class ProjectDetailActivity : AppCompatActivity() {
                         putExtra("session_name", session.name)
                     }
                     startActivity(intent)
+                }
+                setOnLongClickListener {
+                    CommandAssist.showSessionActions(
+                        this@ProjectDetailActivity,
+                        session.id.toString(),
+                        session.name
+                    )
+                    true
                 }
             }
             binding.activeSessionsContainer.addView(sessionView)

@@ -9,7 +9,8 @@ import com.user.data.OrchestTask
 import com.user.databinding.ItemProjectTaskBinding
 
 class ProjectTaskAdapter(
-    private val onTaskClick: (OrchestTask) -> Unit
+    private val onTaskClick: (OrchestTask) -> Unit,
+    private val onTaskLongPress: ((OrchestTask) -> Unit)? = null,
 ) : ListAdapter<OrchestTask, ProjectTaskAdapter.ProjectTaskViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProjectTaskViewHolder {
@@ -32,17 +33,45 @@ class ProjectTaskAdapter(
         fun bind(task: OrchestTask) {
             binding.taskTitle.text = task.title
             binding.taskDescription.text = task.description?.takeIf { it.isNotBlank() } ?: "No description"
-            binding.taskStatus.text = task.status.replace('_', ' ').uppercase()
-
-            binding.taskMeta.text = when (task.status.lowercase()) {
+            binding.taskDescription.visibility =
+                if (task.description.isNullOrBlank()) android.view.View.GONE else android.view.View.VISIBLE
+            binding.taskStatus.text = when (task.status.lowercase()) {
                 "failed" -> "Needs attention"
-                "running", "executing", "in_progress" -> "Currently executing"
-                "pending" -> "Waiting to run"
-                "done", "completed", "success" -> "Completed"
-                else -> "Status available"
+                "running", "executing", "in_progress" -> "Running"
+                "pending" -> "Waiting"
+                "done", "completed", "success" -> "Done"
+                "approved" -> "Approved"
+                "timeout" -> "Timed out"
+                else -> task.status.replace('_', ' ').replaceFirstChar { it.uppercase() }
             }
 
+            val progression = when {
+                task.sequenceIndex != null && task.sequenceTotal != null ->
+                    "Step ${task.sequenceIndex} of ${task.sequenceTotal}"
+                else -> null
+            }
+            val latestRun = when {
+                task.sessionId != null -> {
+                    val activeMarker = if (task.hasActiveSession) " • live" else ""
+                    val sessionStatus = task.sessionStatus
+                        ?.replace('_', ' ')
+                        ?.replaceFirstChar { it.uppercase() }
+                        ?: "Linked"
+                    "#${task.sessionId} • $sessionStatus$activeMarker"
+                }
+                else -> "No run yet"
+            }
+
+            binding.taskMeta.text = listOfNotNull(
+                progression,
+                "Latest run: $latestRun"
+            ).joinToString("\n")
+
             binding.root.setOnClickListener { onTaskClick(task) }
+            binding.root.setOnLongClickListener {
+                onTaskLongPress?.invoke(task)
+                true
+            }
         }
     }
 
