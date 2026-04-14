@@ -10,6 +10,8 @@ import com.user.data.OrchestTask
 import com.user.data.OrchestTaskResponse
 import com.user.data.MobileProjectsResponse
 import com.user.data.MobileCheckpointListResponse
+import com.user.data.MobileTaskDetailResponse
+import com.user.data.MobileTaskActionResponse
 import com.user.data.MobileSessionActionResponse
 import com.user.data.MobileSessionSummaryResponse
 import com.user.data.OrchestratorApiResponse
@@ -457,6 +459,60 @@ class OrchestratorApiClient(
         } catch (e: Exception) {
             Log.w(TAG, "Error resuming session $sessionId: ${e.message}")
             buildFailure("Failed to resume session $sessionId.", e)
+        }
+    }
+
+    suspend fun retryTask(taskId: String): Result<MobileTaskActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("tasks/${taskId}/retry")
+            Log.d(TAG, "Retrying task $taskId via: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Retry task API failed for $taskId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileTaskActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error retrying task $taskId: ${e.message}")
+            buildFailure("Failed to retry task $taskId.", e)
+        }
+    }
+
+    suspend fun getTaskDetail(taskId: String): Result<MobileTaskDetailResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("tasks/${taskId}")
+            Log.d(TAG, "Fetching task detail for $taskId from: $url")
+
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext buildFailure(
+                        "Task detail API failed for $taskId (${response.code} ${response.message})."
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(responseBody, MobileTaskDetailResponse::class.java))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error fetching task detail for $taskId: ${e.message}")
+            buildFailure("Failed to load task detail for $taskId.", e)
         }
     }
 

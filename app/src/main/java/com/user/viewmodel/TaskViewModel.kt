@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.user.data.DashboardSummary
+import com.user.data.MobileTaskDetailResponse
 import com.user.data.OrchestTask
 import com.user.data.RecentActivity
 import com.user.data.Task
@@ -214,6 +215,21 @@ class TaskViewModel(
         )
     }
 
+    private fun MobileTaskDetailResponse.toLocalTask(): Task {
+        return Task(
+            taskId = id.toString(),
+            sessionId = sessionId?.toString().orEmpty(),
+            title = title,
+            description = description.orEmpty(),
+            status = parseStatus(status),
+            priority = priority,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+            error = errorMessage,
+            metadata = null
+        )
+    }
+
     /**
      * Parse Orchestrator task status string to local TaskStatus enum
      */
@@ -320,6 +336,13 @@ class TaskViewModel(
     fun getTask(taskId: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                if (orchestratorClient != null) {
+                    orchestratorClient.getTaskDetail(taskId).onSuccess { taskDetail ->
+                        _currentTask.value = taskDetail.toLocalTask()
+                        return@launch
+                    }
+                }
+
                 val task = runCatching { repository.getTask(taskId) }.getOrNull()
                 if (task != null) {
                     _currentTask.value = task

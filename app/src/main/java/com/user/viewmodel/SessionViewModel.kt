@@ -63,6 +63,10 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         applySort()
     }
 
+    fun refresh() {
+        applySort()
+    }
+
     private fun applySort() {
         val filtered = if (query.isBlank()) {
             allSessions

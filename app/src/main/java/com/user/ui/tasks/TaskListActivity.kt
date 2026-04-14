@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -48,6 +49,19 @@ class TaskListActivity : AppCompatActivity() {
         val severity: Int,
     )
 
+    private enum class ControlPlaneState {
+        HEALTHY,
+        DEGRADED,
+        AUTH_ISSUE,
+        NOT_CONFIGURED
+    }
+
+    private data class DiagnosticsSnapshot(
+        val state: ControlPlaneState,
+        val title: String,
+        val details: String,
+    )
+
     private lateinit var binding: ActivityTaskListBinding
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var viewModel: TaskViewModel
@@ -71,6 +85,11 @@ class TaskListActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = "Tasks"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.orchestratorStatsView.setOnClickListener {
+            if (prefsManager.isOrchestratorConfigured().not() || lastDiagnosticsMessage != null) {
+                startActivity(Intent(this, com.user.ui.activities.SettingsActivity::class.java))
+            }
+        }
 
         binding.blockersCard.setOnClickListener {
             primaryBlockerProject?.let { project ->
@@ -129,6 +148,7 @@ class TaskListActivity : AppCompatActivity() {
             orchestratorClient = orchestratorApiClient
         )
         viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
+        renderDiagnosticsCard()
     }
 
     private fun setupRecyclerView() {
@@ -147,7 +167,9 @@ class TaskListActivity : AppCompatActivity() {
 
     private fun setupProjectRecyclerView() {
         projectProgressAdapter = ProjectProgressAdapter(
-            onProjectClickListener = { project -> openProject(project) }
+            onProjectClickListener = { project -> openProject(project) },
+            onProjectPinClickListener = { project -> toggleProjectPin(project) },
+            isProjectPinned = { project -> prefsManager.isProjectPinned(project.getProjectId()) }
         )
         binding.projectsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@TaskListActivity)
@@ -241,7 +263,7 @@ class TaskListActivity : AppCompatActivity() {
             else -> "No execution activity yet"
         }
 
-        binding.orchestratorStatsView.text = buildDiagnosticsText()
+        renderDiagnosticsCard()
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
         renderOverviewDetails()
     }
@@ -249,11 +271,11 @@ class TaskListActivity : AppCompatActivity() {
     private fun updateOrchestratorWarning(warning: String?) {
         lastDiagnosticsMessage = warning
         if (warning.isNullOrBlank()) {
-            binding.orchestratorStatsView.text = buildDiagnosticsText()
+            renderDiagnosticsCard()
             return
         }
 
-        binding.orchestratorStatsView.text = buildDiagnosticsText()
+        renderDiagnosticsCard()
         binding.orchestratorStatsView.visibility = TextView.VISIBLE
         binding.executionSummaryView.text = "Sync problem detected"
     }
@@ -281,15 +303,6 @@ class TaskListActivity : AppCompatActivity() {
             binding.completedCount.text = completed.toString()
         }
 
-        // Show local stats if no Orchestrator data yet
-        if (binding.orchestratorStatsView.visibility == TextView.GONE) {
-            val statsText = getString(
-                R.string.local_stats,
-                totalTasks, running, pending, completed
-            )
-            binding.orchestratorStatsView.text = statsText
-            binding.orchestratorStatsView.visibility = TextView.VISIBLE
-        }
     }
 
     private fun loadProjectsFromOrchestrator() {
@@ -303,11 +316,11 @@ class TaskListActivity : AppCompatActivity() {
             orchestratorApiClient?.getProjects()?.onSuccess { projects ->
                 runOnUiThread {
                     Log.d("TaskListActivity", "Loaded ${projects.size} projects from Orchestrator")
-                    latestProjects = projects
+                    latestProjects = sortProjectsForDisplay(projects)
                     applyVisibleFilters()
 
                     // Fetch task counts for each project after adapter is updated
-                    loadProjectTaskCounts(projects)
+                    loadProjectTaskCounts(latestProjects)
                 }
             }?.onFailure { error ->
                 Log.d("TaskListActivity", "Orchestrator projects unavailable: ${error.message}")
@@ -371,21 +384,73 @@ class TaskListActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildDiagnosticsText(): String {
-        val gatewayState = if (prefsManager.gatewayToken.isNotBlank()) "configured" else "missing"
-        val orchestratorState = if (latestDashboardStats != null) "reachable" else "unavailable"
-        val authState = when {
-            lastDiagnosticsMessage.isNullOrBlank() && latestDashboardStats != null -> "valid"
-            lastDiagnosticsMessage?.contains("401", ignoreCase = true) == true ||
-                    lastDiagnosticsMessage?.contains("unauthorized", ignoreCase = true) == true ||
-                    lastDiagnosticsMessage?.contains("invalid", ignoreCase = true) == true -> "invalid"
-            latestDashboardStats != null -> "valid"
-            else -> "unknown"
-        }
+    private fun buildDiagnosticsSnapshot(): DiagnosticsSnapshot {
+        val gatewayConfigured = prefsManager.gatewayToken.isNotBlank()
+        val orchestratorConfigured = prefsManager.isOrchestratorConfigured()
         val activeSessions = latestDashboardStats?.sessions?.active ?: 0
-        val detailSuffix = lastDiagnosticsMessage?.let { "\nIssue: $it" } ?: ""
+        val issue = lastDiagnosticsMessage?.trim()
 
-        return "Gateway: $gatewayState\nOrchestrator: $orchestratorState\nMobile auth: $authState\nActive sessions: $activeSessions$detailSuffix"
+        if (!orchestratorConfigured) {
+            return DiagnosticsSnapshot(
+                state = ControlPlaneState.NOT_CONFIGURED,
+                title = "Control plane not configured",
+                details = "Gateway token or Orchestrator URL/API key is missing.\nNext: open Settings and finish Orchestrator setup."
+            )
+        }
+
+        if (!gatewayConfigured) {
+            return DiagnosticsSnapshot(
+                state = ControlPlaneState.NOT_CONFIGURED,
+                title = "Gateway token missing",
+                details = "ClawMobile cannot issue reliable control commands without the shared token.\nNext: open Settings and add the Gateway Token."
+            )
+        }
+
+        val isAuthIssue = issue?.contains("401", ignoreCase = true) == true ||
+                issue?.contains("unauthorized", ignoreCase = true) == true ||
+                issue?.contains("invalid", ignoreCase = true) == true ||
+                issue?.contains("auth", ignoreCase = true) == true
+
+        if (isAuthIssue) {
+            return DiagnosticsSnapshot(
+                state = ControlPlaneState.AUTH_ISSUE,
+                title = "Mobile auth needs attention",
+                details = "Gateway is configured, but Orchestrator rejected the shared key.\nActive sessions: $activeSessions\nIssue: $issue"
+            )
+        }
+
+        if (latestDashboardStats == null) {
+            return DiagnosticsSnapshot(
+                state = ControlPlaneState.DEGRADED,
+                title = "Orchestrator currently unreachable",
+                details = "ClawMobile can still show local data, but dashboard sync is degraded.\nNext: check backend status, server URL, or network path.${issue?.let { "\nIssue: $it" } ?: ""}"
+            )
+        }
+
+        return DiagnosticsSnapshot(
+            state = ControlPlaneState.HEALTHY,
+            title = "Control plane healthy",
+            details = "Gateway configured\nOrchestrator reachable\nMobile auth valid\nActive sessions: $activeSessions"
+        )
+    }
+
+    private fun renderDiagnosticsCard() {
+        val snapshot = buildDiagnosticsSnapshot()
+        binding.orchestratorStatsView.text = "${snapshot.title}\n${snapshot.details}"
+        binding.orchestratorStatsView.visibility = TextView.VISIBLE
+        binding.orchestratorStatsView.setBackgroundColor(
+            ContextCompat.getColor(
+                this,
+                when (snapshot.state) {
+                    ControlPlaneState.HEALTHY -> R.color.status_connected
+                    ControlPlaneState.DEGRADED -> R.color.primary_dark
+                    ControlPlaneState.AUTH_ISSUE -> R.color.status_failed
+                    ControlPlaneState.NOT_CONFIGURED -> R.color.status_pending
+                }
+            )
+        )
+        binding.orchestratorStatsView.isClickable =
+            snapshot.state != ControlPlaneState.HEALTHY
     }
 
     private fun renderOverviewDetails() {
@@ -449,6 +514,17 @@ class TaskListActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    private fun toggleProjectPin(project: Project) {
+        val pinned = prefsManager.togglePinnedProject(project.getProjectId())
+        latestProjects = sortProjectsForDisplay(latestProjects)
+        applyVisibleFilters()
+        Snackbar.make(
+            binding.root,
+            if (pinned) R.string.project_pinned else R.string.project_unpinned,
+            Snackbar.LENGTH_SHORT
+        ).show()
+    }
+
     private fun dashboardSortRank(status: TaskStatus): Int {
         return when (status) {
             TaskStatus.PENDING -> 0
@@ -509,6 +585,13 @@ class TaskListActivity : AppCompatActivity() {
         }
         projectProgressAdapter.submitList(visibleProjects)
         renderOverviewDetails()
+    }
+
+    private fun sortProjectsForDisplay(projects: List<Project>): List<Project> {
+        return projects.sortedWith(
+            compareByDescending<Project> { prefsManager.isProjectPinned(it.getProjectId()) }
+                .thenBy { it.name.lowercase() }
+        )
     }
 
     private fun approveTask(task: Task) {

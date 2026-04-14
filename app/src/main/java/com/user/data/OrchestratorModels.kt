@@ -229,6 +229,37 @@ data class MobileSessionActionResponse(
     val message: String = ""
 )
 
+data class MobileTaskActionResponse(
+    val status: String = "",
+    @SerializedName("task_id")
+    val taskId: Int = 0,
+    @SerializedName("session_id")
+    val sessionId: Int? = null,
+    val message: String = ""
+)
+
+data class MobileTaskDetailResponse(
+    val id: Int = 0,
+    val title: String = "",
+    val description: String? = null,
+    val status: String = "pending",
+    @SerializedName("project_id")
+    val projectId: Int = 0,
+    val priority: Int = 0,
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+    @SerializedName("updated_at")
+    val updatedAt: String? = null,
+    @SerializedName("error_message")
+    val errorMessage: String? = null,
+    @SerializedName("session_id")
+    val sessionId: Int? = null,
+    @SerializedName("session_name")
+    val sessionName: String? = null,
+    @SerializedName("has_active_session")
+    val hasActiveSession: Boolean = false
+)
+
 /**
  * Task statistics for project status response
  */

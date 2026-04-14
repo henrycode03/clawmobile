@@ -77,5 +77,21 @@
     <string name="command_prefilled">Command added to input</string>
     <string name="command_toggle">Cmd</string>
     <string name="command_hide">Hide</string>
+    <string name="command_suggestion_selected">Command suggestion selected</string>
+    <string name="message_hint_command">Message or command</string>
+    <string name="retry_task">RETRY TASK</string>
+    <string name="retry_task_title">Retry Task</string>
+    <string name="retry_task_message">Queue this task for a fresh run in Orchestrator?</string>
+    <string name="retry_task_success">Task restarted.</string>
+    <string name="retry_task_failed">Could not restart task.</string>
+    <string name="open_session">OPEN SESSION</string>
+    <string name="pin_project">Pin project</string>
+    <string name="unpin_project">Unpin project</string>
+    <string name="pin_session">Pin session</string>
+    <string name="unpin_session">Unpin session</string>
+    <string name="project_pinned">Project pinned</string>
+    <string name="project_unpinned">Project unpinned</string>
+    <string name="session_pinned">Session pinned</string>
+    <string name="session_unpinned">Session unpinned</string>
 
 </resources>

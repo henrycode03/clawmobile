@@ -15,7 +15,9 @@ import com.user.data.Project
  * Adapter for displaying project progress cards with real task counts from Orchestrator API
  */
 class ProjectProgressAdapter(
-    private val onProjectClickListener: ((Project) -> Unit)? = null
+    private val onProjectClickListener: ((Project) -> Unit)? = null,
+    private val onProjectPinClickListener: ((Project) -> Unit)? = null,
+    private val isProjectPinned: ((Project) -> Boolean)? = null
 ) : ListAdapter<Project, ProjectProgressAdapter.ProjectViewHolder>(ProjectDiffCallback()) {
 
     data class ProjectStats(
@@ -56,6 +58,7 @@ class ProjectProgressAdapter(
         private val projectCompletedCount: TextView = itemView.findViewById(R.id.projectCompletedCount)
         private val projectFailedCount: TextView = itemView.findViewById(R.id.projectFailedCount)
         private val projectProgressBar: ProgressBar = itemView.findViewById(R.id.projectProgressBar)
+        private val pinProjectButton: View = itemView.findViewById(R.id.pinProjectButton)
 
         fun bind(project: Project, stats: ProjectStats?) {
             projectName.text = project.name
@@ -76,6 +79,18 @@ class ProjectProgressAdapter(
             // Click handler
             itemView.setOnClickListener {
                 onProjectClickListener?.invoke(project)
+            }
+            pinProjectButton.setOnClickListener {
+                onProjectPinClickListener?.invoke(project)
+            }
+            val pinned = isProjectPinned?.invoke(project) == true
+            pinProjectButton.contentDescription = itemView.context.getString(
+                if (pinned) R.string.unpin_project else R.string.pin_project
+            )
+            if (pinProjectButton is android.widget.ImageButton) {
+                pinProjectButton.setImageResource(
+                    if (pinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off
+                )
             }
         }
 
