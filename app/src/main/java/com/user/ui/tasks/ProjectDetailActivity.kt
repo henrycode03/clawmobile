@@ -25,6 +25,7 @@ class ProjectDetailActivity : AppCompatActivity() {
     private var orchestratorClient: OrchestratorApiClient? = null
     private var projectId: String = ""
     private var projectName: String = ""
+    private var latestProjectSessions: List<ProjectSessionSummary> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +73,9 @@ class ProjectDetailActivity : AppCompatActivity() {
         val client = orchestratorClient ?: run {
             binding.projectStatusSummary.text = "Orchestrator is not configured on this device."
             binding.projectTreeSummary.text = "Orchestrator is not configured on this device."
+            binding.filesCard.visibility = View.VISIBLE
             binding.projectTreeView.visibility = View.GONE
+            binding.sessionsSection.visibility = View.GONE
             binding.projectTasksEmpty.visibility = View.VISIBLE
             return
         }
@@ -99,7 +102,7 @@ class ProjectDetailActivity : AppCompatActivity() {
                 }
 
                 val activeSessionSummary = if (status.sessions.isEmpty()) {
-                    "No recent sessions right now"
+                    null
                 } else {
                     buildString {
                         append("${status.activeSessions} active")
@@ -112,10 +115,16 @@ class ProjectDetailActivity : AppCompatActivity() {
                         }
                     }
                 }
-                binding.activeSessionsSummary.text = activeSessionSummary
+                binding.sessionsSection.visibility =
+                    if (status.sessions.isEmpty()) View.GONE else View.VISIBLE
+                binding.activeSessionsSummary.text = activeSessionSummary.orEmpty()
+                latestProjectSessions = status.sessions
+                renderPrimaryAction(status.sessions)
                 renderActiveSessions(status.sessions)
             }.onFailure { error ->
                 binding.projectStatusSummary.text = error.message ?: "Unable to load project status."
+                binding.projectPrimaryActionView.visibility = View.GONE
+                binding.sessionsSection.visibility = View.GONE
                 binding.activeSessionsContainer.removeAllViews()
             }
 
@@ -123,10 +132,12 @@ class ProjectDetailActivity : AppCompatActivity() {
                 when {
                     !tree.exists -> {
                         binding.projectTreeSummary.text = "Project workspace has not been created yet."
+                        binding.filesCard.visibility = View.GONE
                         binding.projectTreeView.visibility = View.GONE
                     }
                     tree.treeLines.isEmpty() -> {
                         binding.projectTreeSummary.text = "Project workspace is empty."
+                        binding.filesCard.visibility = View.VISIBLE
                         binding.projectTreeView.visibility = View.GONE
                     }
                     else -> {
@@ -136,12 +147,14 @@ class ProjectDetailActivity : AppCompatActivity() {
                             append(" shown")
                             if (tree.truncated) append(" • trimmed for mobile")
                         }
+                        binding.filesCard.visibility = View.VISIBLE
                         binding.projectTreeSummary.text = summary
                         binding.projectTreeView.text = tree.treeLines.joinToString("\n")
                         binding.projectTreeView.visibility = View.VISIBLE
                     }
                 }
             }.onFailure { error ->
+                binding.filesCard.visibility = View.VISIBLE
                 binding.projectTreeSummary.text = error.message ?: "Unable to load file tree."
                 binding.projectTreeView.visibility = View.GONE
             }
@@ -153,6 +166,9 @@ class ProjectDetailActivity : AppCompatActivity() {
                     }.thenBy { it.title.lowercase() }
                 )
                 adapter.submitList(sorted)
+                if (latestProjectSessions.isEmpty()) {
+                    renderPrimaryAction(emptyList(), sorted)
+                }
                 binding.projectTasksEmpty.visibility = if (sorted.isEmpty()) View.VISIBLE else View.GONE
             }.onFailure { error ->
                 binding.projectTasksEmpty.visibility = View.VISIBLE
@@ -166,11 +182,78 @@ class ProjectDetailActivity : AppCompatActivity() {
         return true
     }
 
+    private fun renderPrimaryAction(
+        sessions: List<ProjectSessionSummary>,
+        tasks: List<com.user.data.OrchestTask> = adapter.currentList
+    ) {
+        val liveSession = sessions.firstOrNull { it.isActive || it.status.equals("running", true) }
+        val resumableSession = sessions.firstOrNull {
+            it.status.equals("paused", true) || it.status.equals("stopped", true)
+        }
+        val nextTask = tasks.firstOrNull {
+            val normalized = it.status.lowercase()
+            normalized == "running" || normalized == "in_progress" || normalized == "pending" || normalized == "approved"
+        }
+
+        when {
+            liveSession != null -> {
+                binding.projectPrimaryActionView.visibility = View.VISIBLE
+                binding.projectPrimaryActionView.text =
+                    "${getString(R.string.project_primary_action_live)}\n${liveSession.name} • #${liveSession.id}"
+                binding.projectPrimaryActionView.isClickable = true
+                binding.projectPrimaryActionView.isFocusable = true
+                binding.projectPrimaryActionView.setOnClickListener {
+                    openSession(liveSession.id.toString(), liveSession.name)
+                }
+            }
+            resumableSession != null -> {
+                binding.projectPrimaryActionView.visibility = View.VISIBLE
+                binding.projectPrimaryActionView.text =
+                    "${getString(R.string.project_primary_action_resume)}\n${resumableSession.name} • #${resumableSession.id}"
+                binding.projectPrimaryActionView.isClickable = true
+                binding.projectPrimaryActionView.isFocusable = true
+                binding.projectPrimaryActionView.setOnClickListener {
+                    openSession(resumableSession.id.toString(), resumableSession.name)
+                }
+            }
+            nextTask != null -> {
+                binding.projectPrimaryActionView.visibility = View.VISIBLE
+                binding.projectPrimaryActionView.text =
+                    "${getString(R.string.project_primary_action_task)}\n${nextTask.title}"
+                binding.projectPrimaryActionView.isClickable = true
+                binding.projectPrimaryActionView.isFocusable = true
+                binding.projectPrimaryActionView.setOnClickListener {
+                    startActivity(
+                        Intent(this, TaskDetailActivity::class.java).apply {
+                            putExtra("task_id", nextTask.taskId)
+                            putExtra("session_id", "")
+                        }
+                    )
+                }
+            }
+            else -> {
+                binding.projectPrimaryActionView.visibility = View.GONE
+                binding.projectPrimaryActionView.setOnClickListener(null)
+            }
+        }
+    }
+
+    private fun openSession(sessionId: String, sessionName: String) {
+        startActivity(
+            Intent(this, SessionDetailActivity::class.java).apply {
+                putExtra("session_id", sessionId)
+                putExtra("session_name", sessionName)
+            }
+        )
+    }
+
     private fun renderActiveSessions(sessions: List<ProjectSessionSummary>) {
         binding.activeSessionsContainer.removeAllViews()
         if (sessions.isEmpty()) {
+            binding.sessionsSection.visibility = View.GONE
             return
         }
+        binding.sessionsSection.visibility = View.VISIBLE
 
         val paddingHorizontal = (16 * resources.displayMetrics.density).toInt()
         val paddingVertical = (12 * resources.displayMetrics.density).toInt()
@@ -194,11 +277,7 @@ class ProjectDetailActivity : AppCompatActivity() {
                 isClickable = true
                 isFocusable = true
                 setOnClickListener {
-                    val intent = Intent(this@ProjectDetailActivity, SessionDetailActivity::class.java).apply {
-                        putExtra("session_id", session.id.toString())
-                        putExtra("session_name", session.name)
-                    }
-                    startActivity(intent)
+                    openSession(session.id.toString(), session.name)
                 }
                 setOnLongClickListener {
                     CommandAssist.showSessionActions(

@@ -330,9 +330,15 @@ class TaskDetailActivity : AppCompatActivity() {
         val openSessionBtn = binding.openSessionButton
         val startBtn = binding.startButton
         val linkedSessionId = currentTask?.sessionId?.takeIf { it.isNotBlank() }
+        val canOpenSession = linkedSessionId != null && status !in setOf(
+            TaskStatus.PENDING,
+            TaskStatus.APPROVED,
+            TaskStatus.FAILED,
+            TaskStatus.TIMEOUT,
+        )
 
-        if (linkedSessionId != null) {
-            openSessionBtn.visibility = android.view.View.VISIBLE
+        openSessionBtn.visibility = if (canOpenSession) View.VISIBLE else View.GONE
+        if (canOpenSession) {
             openSessionBtn.setOnClickListener {
                 startActivity(
                     Intent(this, SessionDetailActivity::class.java).apply {
@@ -341,8 +347,6 @@ class TaskDetailActivity : AppCompatActivity() {
                     }
                 )
             }
-        } else {
-            openSessionBtn.visibility = android.view.View.GONE
         }
 
         when (status) {
@@ -376,6 +380,7 @@ class TaskDetailActivity : AppCompatActivity() {
             TaskStatus.FAILED, TaskStatus.TIMEOUT -> {
                 approveBtn.visibility = android.view.View.GONE
                 rejectBtn.visibility = android.view.View.GONE
+                openSessionBtn.visibility = android.view.View.GONE
                 startBtn.visibility =
                     if (orchestratorClient != null) android.view.View.VISIBLE else android.view.View.GONE
                 if (recommendedRecoveryAction == RecoveryAction.RESUME_SESSION && recoverySessionId != null) {

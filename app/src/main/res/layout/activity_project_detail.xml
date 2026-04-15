@@ -23,6 +23,7 @@
             app:titleTextColor="@color/text_primary" />
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/filesCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_lg"
@@ -60,35 +61,54 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_sm" />
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="@dimen/space_lg"
-                    android:background="@color/divider" />
-
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_lg"
-                    android:text="Active Sessions"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/activeSessionsSummary"
-                    style="@style/TextAppearance.OpenClaw.SectionBody"
+                    android:id="@+id/projectPrimaryActionView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_xs"
-                    android:text="No recent sessions right now" />
+                    android:layout_marginTop="@dimen/space_md"
+                    android:background="@drawable/bg_overview_panel"
+                    android:padding="@dimen/space_md"
+                    android:textColor="@color/card_text_primary"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
-                    android:id="@+id/activeSessionsContainer"
+                    android:id="@+id/sessionsSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_sm"
-                    android:orientation="vertical" />
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:background="@color/divider" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="Active Sessions"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/activeSessionsSummary"
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="No recent sessions right now" />
+
+                    <LinearLayout
+                        android:id="@+id/activeSessionsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:orientation="vertical" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

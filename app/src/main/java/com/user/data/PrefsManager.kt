@@ -11,6 +11,8 @@ class PrefsManager(context: Context) {
     private companion object {
         const val KEY_PINNED_PROJECT_IDS = "pinned_project_ids"
         const val KEY_PINNED_SESSION_IDS = "pinned_session_ids"
+        const val KEY_RECENT_INPUT_HISTORY = "recent_input_history"
+        const val MAX_RECENT_INPUTS = 24
     }
 
     var onboardingCompleted: Boolean
@@ -114,5 +116,22 @@ class PrefsManager(context: Context) {
         }
         prefs.edit().putStringSet(KEY_PINNED_SESSION_IDS, updated).apply()
         return pinned
+    }
+
+    fun getRecentInputHistory(): List<String> {
+        val raw = prefs.getString(KEY_RECENT_INPUT_HISTORY, "") ?: ""
+        if (raw.isBlank()) return emptyList()
+        return raw
+            .split('\n')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+    }
+
+    fun saveRecentInputHistory(history: List<String>) {
+        val trimmed = history
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .takeLast(MAX_RECENT_INPUTS)
+        prefs.edit().putString(KEY_RECENT_INPUT_HISTORY, trimmed.joinToString("\n")).apply()
     }
 }

@@ -148,7 +148,7 @@ class SessionDetailActivity : AppCompatActivity() {
                 (latestCheckpoints?.totalCount ?: 0) > 0
             ) View.VISIBLE else View.GONE
         binding.stopButton.visibility =
-            if (summary.status.equals("running", true) || summary.status.equals("paused", true)) View.VISIBLE else View.GONE
+            if (summary.status.equals("running", true)) View.VISIBLE else View.GONE
     }
 
     private fun bindCheckpoints(checkpoints: MobileCheckpointListResponse) {
@@ -218,7 +218,7 @@ class SessionDetailActivity : AppCompatActivity() {
 
         binding.resumeButton.visibility = if (resumable) View.VISIBLE else View.GONE
         binding.stopButton.visibility =
-            if (status == "running" || status == "paused") View.VISIBLE else View.GONE
+            if (status == "running") View.VISIBLE else View.GONE
         binding.resumeButton.text = getString(R.string.resume_button_label)
     }
 

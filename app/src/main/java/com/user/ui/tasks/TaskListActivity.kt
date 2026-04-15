@@ -420,9 +420,9 @@ class TaskListActivity : AppCompatActivity() {
         if (!orchestratorConfigured) {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.NOT_CONFIGURED,
-                title = "Control plane not configured",
-                details = "Gateway token or Orchestrator URL/API key is missing.\nNext: open Settings and finish Orchestrator setup.",
-                help = "Still works: local task list, local task detail, search, and pinned items.\nBlocked: live dashboard sync, project status, sessions, resume/retry actions, and blockers from Orchestrator."
+                title = "Setup needed",
+                details = "Connect ClawMobile to Gateway and Orchestrator in Settings.",
+                help = "You can still browse local tasks, search, and use pinned items.\nLive project updates and recovery actions will appear after setup."
             )
         }
 
@@ -430,8 +430,8 @@ class TaskListActivity : AppCompatActivity() {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.NOT_CONFIGURED,
                 title = "Gateway token missing",
-                details = "ClawMobile cannot issue reliable control commands without the shared token.\nNext: open Settings and add the Gateway Token.",
-                help = "Still works: browsing cached/local task data.\nBlocked: mobile commands, session control, and authenticated Orchestrator sync."
+                details = "Add the shared token in Settings to enable live control.",
+                help = "You can still browse saved task data.\nCommands, session actions, and live sync need the shared token."
             )
         }
 
@@ -443,25 +443,25 @@ class TaskListActivity : AppCompatActivity() {
         if (isAuthIssue) {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.AUTH_ISSUE,
-                title = "Mobile auth needs attention",
-                details = "Gateway is configured, but Orchestrator rejected the shared key.\nActive sessions: $activeSessions\nIssue: $issue",
-                help = "Still works: existing local task browsing and search.\nBlocked: live project/session refresh and control actions until the shared key matches again."
+                title = "Sign-in needs attention",
+                details = "ClawMobile could reach Orchestrator, but the shared key was rejected.\n${issue?.let { "Issue: $it" } ?: "Update the key in Settings and try again."}",
+                help = "You can still browse local task data and search.\nLive refresh and session actions will return after the key matches again."
             )
         }
 
         if (latestDashboardStats == null) {
             return DiagnosticsSnapshot(
                 state = ControlPlaneState.DEGRADED,
-                title = "Orchestrator currently unreachable",
-                details = "ClawMobile can still show local data, but dashboard sync is degraded.\nNext: check backend status, server URL, or network path.${issue?.let { "\nIssue: $it" } ?: ""}",
-                help = "Still works: local task list, search, pinning, and any already-open detail screens.\nBlocked: fresh project/session data, recent execution cards, and remote recovery actions."
+                title = "Live updates unavailable",
+                details = "ClawMobile can still show saved task data, but it cannot refresh Orchestrator right now.${issue?.let { "\nIssue: $it" } ?: ""}",
+                help = "You can still browse tasks, search, and open existing details.\nLive project updates, recent run cards, and remote recovery will return when the connection comes back."
             )
         }
 
         return DiagnosticsSnapshot(
             state = ControlPlaneState.HEALTHY,
-            title = "Control plane healthy",
-            details = "Gateway configured\nOrchestrator reachable\nMobile auth valid\nActive sessions: $activeSessions",
+            title = "Connected",
+            details = "Live project status and recovery actions are available.\nActive sessions: $activeSessions",
             help = "Live project status, blockers, recent execution, and recovery actions are available."
         )
     }
@@ -510,15 +510,10 @@ class TaskListActivity : AppCompatActivity() {
                     summary = "${project.name}: ${stats.failed} failed • ${stats.activeSessions} active session${if (stats.activeSessions == 1) "" else "s"}",
                     severity = 0,
                 )
-                stats.running > 0 && stats.activeSessions > 0 -> BlockerItem(
-                    project = project,
-                    summary = "${project.name}: ${stats.running} running • ${stats.activeSessions} active session${if (stats.activeSessions == 1) "" else "s"}",
-                    severity = 1,
-                )
                 stats.pending > 0 -> BlockerItem(
                     project = project,
-                    summary = "${project.name}: ${stats.pending} pending",
-                    severity = 2,
+                    summary = "${project.name}: ${stats.pending} waiting",
+                    severity = 1,
                 )
                 else -> null
             }
@@ -528,17 +523,19 @@ class TaskListActivity : AppCompatActivity() {
         val canOpenBlocker = primaryBlockerProject != null && diagnostics.state == ControlPlaneState.HEALTHY
         binding.blockersCard.isClickable = canOpenBlocker
         binding.blockersCard.isFocusable = canOpenBlocker
+        val showBlockersCard =
+            diagnostics.state != ControlPlaneState.HEALTHY || blockers.isNotEmpty()
+        binding.blockersCard.visibility = if (showBlockersCard) View.VISIBLE else View.GONE
 
         binding.blockerSummaryView.text = when {
-            diagnostics.state != ControlPlaneState.HEALTHY -> "Remote blocker scan unavailable"
+            diagnostics.state != ControlPlaneState.HEALTHY -> "Blocker check unavailable"
             blockers.any { it.severity == 0 } -> "Needs attention now"
-            blockers.any { it.severity == 1 } -> "Watching active work"
-            blockers.any { it.severity == 2 } -> "Queued work waiting"
-            else -> "No blockers detected."
+            blockers.any { it.severity == 1 } -> "Waiting on next step"
+            else -> "Nothing urgent right now"
         }
         binding.blockerDetailsView.text = when {
             diagnostics.state != ControlPlaneState.HEALTHY ->
-                "ClawMobile cannot verify cross-project blockers right now.\nYou can still browse local tasks or open Settings to restore the control plane."
+                "ClawMobile cannot check blockers right now.\nYou can still browse tasks or reconnect in Settings."
             blockers.isNotEmpty() -> buildString {
                 append(blockers.take(3).joinToString("\n") { it.summary })
                 primaryBlockerProject?.let {
@@ -546,10 +543,10 @@ class TaskListActivity : AppCompatActivity() {
                     append(it.name)
                 }
             }
-            else -> "Runs that need attention will appear here."
+            else -> "Failed work or waiting projects will appear here."
         }
 
-        binding.recentActivityView.text = when {
+        val recentActivityText = when {
             diagnostics.state == ControlPlaneState.NOT_CONFIGURED ->
                 "Finish setup first. Once Orchestrator is connected, this area will show failures, live sessions, and resumable work."
             diagnostics.state == ControlPlaneState.AUTH_ISSUE ->
@@ -563,11 +560,26 @@ class TaskListActivity : AppCompatActivity() {
                 "Open a project to inspect logs, status, checkpoints, and recovery actions."
             else -> "Create or sync a project to see live execution details here."
         }
-
         val latestFailure = latestSessions.firstOrNull { session ->
             session.status.equals("failed", true) || session.status.equals("stopped", true)
         }
         val showUnavailableOverviewCards = diagnostics.state != ControlPlaneState.HEALTHY
+        val runningSession = latestSessions.firstOrNull { session ->
+            session.status.equals("running", true) || session.isActive
+        }
+        val resumableSession = latestSessions.firstOrNull { session ->
+            session.status.equals("paused", true) || session.status.equals("stopped", true)
+        }
+        val showRecentActivityText = when {
+            diagnostics.state != ControlPlaneState.HEALTHY -> true
+            latestRecentActivity.isNotEmpty() -> true
+            latestFailure != null -> false
+            runningSession != null || resumableSession != null -> false
+            else -> true
+        }
+        binding.recentActivityView.text = recentActivityText
+        binding.recentActivityView.visibility = if (showRecentActivityText) View.VISIBLE else View.GONE
+
         renderOverviewCard(
             textView = binding.latestFailureView,
             title = when {
@@ -586,9 +598,6 @@ class TaskListActivity : AppCompatActivity() {
             enabled = diagnostics.state == ControlPlaneState.HEALTHY && latestFailure != null
         )
 
-        val runningSession = latestSessions.firstOrNull { session ->
-            session.status.equals("running", true) || session.isActive
-        }
         renderOverviewCard(
             textView = binding.runningSessionView,
             title = when {
@@ -607,9 +616,6 @@ class TaskListActivity : AppCompatActivity() {
             enabled = diagnostics.state == ControlPlaneState.HEALTHY && runningSession != null
         )
 
-        val resumableSession = latestSessions.firstOrNull { session ->
-            session.status.equals("paused", true) || session.status.equals("stopped", true)
-        }
         renderOverviewCard(
             textView = binding.resumableSessionView,
             title = when {
