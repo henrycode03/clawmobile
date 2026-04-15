@@ -102,6 +102,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         connect()
     }
 
+    fun stopService(context: Context) {
+        val intent = Intent(context, GatewayConnectionService::class.java)
+        context.stopService(intent)
+    }
+
     private fun observeGatewayEvents() {
         viewModelScope.launch {
             gateway.events.collect { event ->
@@ -356,6 +361,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             gateway.connect()
         }
+    }
+
+    fun disconnect() {
+        gateway.disconnect()
     }
 }
 

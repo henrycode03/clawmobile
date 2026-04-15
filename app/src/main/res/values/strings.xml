@@ -80,7 +80,6 @@
     <string name="command_toggle">Cmd</string>
     <string name="command_hide">Hide</string>
     <string name="command_suggestion_selected">Command suggestion selected</string>
-    <string name="code_block_inserted">Code block inserted</string>
     <string name="command_action_copy_id">Copy ID</string>
     <string name="command_action_copy_command">Copy command: %1$s</string>
     <string name="command_action_send_to_chat">Send to chat: %1$s</string>
@@ -164,7 +163,6 @@
     <string name="main_menu_tasks">Tasks</string>
     <string name="main_menu_github">GitHub</string>
     <string name="main_menu_commands">Commands</string>
-    <string name="main_menu_code">Code block</string>
     <string name="main_menu_settings">Settings</string>
     <string name="main_menu_guide">Guide</string>
 

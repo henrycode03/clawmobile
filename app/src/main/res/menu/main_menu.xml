@@ -31,11 +31,6 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_code_block"
-        android:title="Code Block"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_settings"
         android:title="Settings"
         app:showAsAction="never" />
