@@ -2,10 +2,14 @@
 <resources>
     <color name="primary">#1F6FEB</color>
     <color name="primary_dark">#161B22</color>
+    <color name="primary_container">#16345C</color>
     <color name="accent">#238636</color>
 
     <color name="background">#0D1117</color>
     <color name="surface">#161B22</color>
+    <color name="surface_container_low">#11161D</color>
+    <color name="surface_container">#1B222C</color>
+    <color name="surface_container_high">#212A35</color>
     <color name="toolbar_color">#161B22</color>
 
     <color name="user_bubble">#1F6FEB</color>
@@ -25,9 +29,15 @@
     <color name="message_text">#E6EDF3</color>
 
     <color name="send_button">#238636</color>
+    <color name="secondary_button_text">#C9D1D9</color>
 
     <color name="divider">#30363D</color>
     <color name="border">#30363D</color>
+    <color name="outline_subtle">#3A4553</color>
+    <color name="status_chip_background">#122031</color>
+    <color name="success_surface">#163322</color>
+    <color name="warning_surface">#3B2F14</color>
+    <color name="error_surface">#4A1F22</color>
 
     <color name="status_connected">#3FB950</color>
     <color name="status_disconnected">#8B949E</color>
@@ -42,6 +52,6 @@
     <color name="blue_500">#2196F3</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="card_text_primary">#1F2937</color>
-    <color name="card_text_secondary">#4B5563</color>
+    <color name="card_text_primary">#E6EDF3</color>
+    <color name="card_text_secondary">#9AA4AF</color>
 </resources>

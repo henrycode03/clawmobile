@@ -3,6 +3,7 @@ package com.user.ui.tasks
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -60,7 +61,7 @@ class ProjectProgressAdapter(
         private val projectCompletedCount: TextView = itemView.findViewById(R.id.projectCompletedCount)
         private val projectFailedCount: TextView = itemView.findViewById(R.id.projectFailedCount)
         private val projectProgressBar: ProgressBar = itemView.findViewById(R.id.projectProgressBar)
-        private val pinProjectButton: View = itemView.findViewById(R.id.pinProjectButton)
+        private val pinProjectButton: ImageButton = itemView.findViewById(R.id.pinProjectButton)
 
         fun bind(project: Project, stats: ProjectStats?) {
             projectName.text = project.name
@@ -93,17 +94,15 @@ class ProjectProgressAdapter(
             pinProjectButton.contentDescription = itemView.context.getString(
                 if (pinned) R.string.unpin_project else R.string.pin_project
             )
-            if (pinProjectButton is android.widget.ImageButton) {
-                pinProjectButton.setImageResource(
-                    if (pinned) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+            pinProjectButton.setImageResource(
+                if (pinned) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+            )
+            pinProjectButton.setColorFilter(
+                ContextCompat.getColor(
+                    itemView.context,
+                    if (pinned) R.color.status_pending else R.color.timestamp_text
                 )
-                pinProjectButton.setColorFilter(
-                    ContextCompat.getColor(
-                        itemView.context,
-                        if (pinned) R.color.status_pending else R.color.timestamp_text
-                    )
-                )
-            }
+            )
         }
 
         fun updateWithStats(
@@ -115,19 +114,18 @@ class ProjectProgressAdapter(
             activeSessions: Int
         ) {
             // Using a temporary variable to avoid re-appending if called multiple times
-            val baseName = projectName.text.toString().substringBefore(" (")
-            projectName.text = "$baseName ($total tasks)"
+            projectName.text = projectName.text.toString().substringBefore(" (")
             projectRunningCount.text = running.toString()
             projectPendingCount.text = pending.toString()
             projectCompletedCount.text = completed.toString()
             projectFailedCount.text = failed.toString()
 
             projectStatusSummary.text = when {
-                failed > 0 -> "$failed failed • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
-                running > 0 -> "Active now • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
-                pending > 0 -> "Waiting on $pending task${if (pending == 1) "" else "s"}"
+                failed > 0 -> "$total tasks • $failed failed • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
+                running > 0 -> "$total tasks • Active now • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
+                pending > 0 -> "$total tasks • Waiting on $pending task${if (pending == 1) "" else "s"}"
                 total == 0 -> "No tasks yet"
-                else -> "Healthy • $completed completed"
+                else -> "$total tasks • $completed completed"
             }
 
             // Calculate completion percentage if we have total tasks
@@ -141,8 +139,7 @@ class ProjectProgressAdapter(
         }
 
         fun showEmptyState() {
-            val baseName = projectName.text.toString().substringBefore(" (")
-            projectName.text = "$baseName (No tasks)"
+            projectName.text = projectName.text.toString().substringBefore(" (")
             projectRunningCount.text = "0"
             projectPendingCount.text = "0"
             projectCompletedCount.text = "0"

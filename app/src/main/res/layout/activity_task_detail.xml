@@ -11,178 +11,177 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/background"
         android:orientation="vertical">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
-            android:elevation="4dp"
+            android:background="@color/toolbar_color"
             app:navigationIcon="@drawable/ic_back"
-            app:titleTextColor="@color/text_primary"/>
+            app:titleTextColor="@color/text_primary" />
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface">
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_lg"
+            android:layout_marginEnd="@dimen/space_lg"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/taskStatusBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
                     android:background="@drawable/badge_pending"
+                    android:paddingStart="@dimen/space_lg"
+                    android:paddingTop="@dimen/space_sm"
+                    android:paddingEnd="@dimen/space_lg"
+                    android:paddingBottom="@dimen/space_sm"
                     android:textColor="@color/white"
                     android:textSize="14sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/taskTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/space_lg"
                     android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold"/>
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:id="@+id/taskMetaRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/taskPriorityLabel"
+                        style="@style/TextAppearance.OpenClaw.Status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Priority:"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"/>
+                        android:text="Priority:" />
 
                     <TextView
                         android:id="@+id/taskPriority"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/space_sm"
                         android:text="0"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"/>
+                        android:textSize="14sp" />
 
                     <View
                         android:layout_width="0dp"
                         android:layout_height="0dp"
-                        android:layout_weight="1"/>
+                        android:layout_weight="1" />
 
                     <TextView
                         android:id="@+id/taskTime"
+                        style="@style/TextAppearance.OpenClaw.Status"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"/>
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
 
                 <TextView
                     android:id="@+id/taskDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/space_lg"
                     android:lineSpacingExtra="4dp"
                     android:textColor="@color/text_secondary"
-                    android:textSize="16sp"/>
+                    android:textSize="16sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface">
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/taskResultLabel"
+                    style="@style/TextAppearance.OpenClaw.SectionTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Result"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold"/>
+                    android:text="Result" />
 
                 <TextView
                     android:id="@+id/taskResult"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@color/surface"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:background="@drawable/bg_github_result_panel"
                     android:fontFamily="monospace"
                     android:lineSpacingExtra="4dp"
-                    android:padding="12dp"
+                    android:padding="@dimen/space_md"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/taskErrorLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/space_lg"
                     android:text="Error"
                     android:textColor="@color/status_failed"
                     android:textSize="16sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/taskError"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@color/surface"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:background="@drawable/bg_github_result_panel"
                     android:fontFamily="monospace"
                     android:lineSpacingExtra="4dp"
-                    android:padding="12dp"
+                    android:padding="@dimen/space_md"
                     android:textColor="@color/status_failed"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/failureSummaryCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/surface"
-            android:visibility="gone">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/failureSummaryLabel"
@@ -191,36 +190,36 @@
                     android:text="Why This Failed"
                     android:textColor="@color/status_failed"
                     android:textSize="16sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/failureSummaryView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:lineSpacingExtra="3dp"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/recoveryCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
             android:visibility="gone"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/recoveryActionTitle"
@@ -234,64 +233,64 @@
                     android:id="@+id/recoveryActionSummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:lineSpacingExtra="3dp"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:id="@+id/actionButtons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_lg"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:layout_marginBottom="@dimen/space_2xl"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/approveButton"
+                style="@style/Widget.OpenClaw.Button.Primary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
+                android:layout_marginEnd="@dimen/space_xs"
                 android:layout_weight="1"
                 android:text="APPROVE"
-                android:visibility="gone"
-                app:cornerRadius="4dp"/>
+                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/rejectButton"
+                style="@style/Widget.OpenClaw.Button.Danger"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/space_xs"
+                android:layout_marginEnd="@dimen/space_xs"
                 android:layout_weight="1"
                 android:text="REJECT"
-                android:visibility="gone"
-                app:backgroundTint="@color/status_failed"
-                app:cornerRadius="4dp"/>
+                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/openSessionButton"
+                style="@style/Widget.OpenClaw.Button.Secondary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="@dimen/space_xs"
+                android:layout_marginEnd="@dimen/space_xs"
                 android:layout_weight="1"
                 android:text="@string/open_session"
-                android:visibility="gone"
-                app:cornerRadius="4dp"/>
+                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/startButton"
+                style="@style/Widget.OpenClaw.Button.Primary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/space_xs"
                 android:layout_weight="1"
                 android:text="START"
-                android:visibility="gone"
-                app:cornerRadius="4dp"/>
+                android:visibility="gone" />
         </LinearLayout>
 
     </LinearLayout>

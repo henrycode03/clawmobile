@@ -12,7 +12,6 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.AutoCompleteTextView
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -146,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity).also { it.stackFromEnd = true }
             adapter = chatAdapter
             if (itemDecorationCount == 0) {
-                addItemDecoration(MessageSpacingDecoration(dpToPx(4)))
+                addItemDecoration(MessageSpacingDecoration(4.dpToPx()))
             }
         }
     }
@@ -245,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             android.R.layout.simple_dropdown_item_1line,
             commandTemplates
         )
-        (binding.messageEditText as? AutoCompleteTextView)?.apply {
+        binding.messageEditText.apply {
             setAdapter(adapter)
             threshold = 1
             setOnItemClickListener { _, _, position, _ ->
@@ -285,7 +284,7 @@ class MainActivity : AppCompatActivity() {
         binding.messageEditText.setText(command)
         binding.messageEditText.setSelection(command.length)
         binding.messageEditText.requestFocus()
-        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
+        binding.messageEditText.dismissDropDown()
         Toast.makeText(this, getString(R.string.command_prefilled), Toast.LENGTH_SHORT).show()
         if (commandsVisible) {
             commandsVisible = false
@@ -319,7 +318,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
         }
-        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
+        binding.messageEditText.dismissDropDown()
     }
 
     private fun insertCodeBlock() {
@@ -424,7 +423,7 @@ class MainActivity : AppCompatActivity() {
         if (text.isEmpty()) return
         rememberInput(text)
         binding.messageEditText.text?.clear()
-        (binding.messageEditText as? AutoCompleteTextView)?.dismissDropDown()
+        binding.messageEditText.dismissDropDown()
         viewModel.sendMessage(text)
     }
 
@@ -669,8 +668,8 @@ class MainActivity : AppCompatActivity() {
         return ContextCompat.getColor(this, colorRes)
     }
 
-    private fun dpToPx(dp: Int): Int =
-        (dp * resources.displayMetrics.density).toInt()
+    private fun Int.dpToPx(): Int =
+        (this * resources.displayMetrics.density).toInt()
 
     private class MessageSpacingDecoration(
         private val spacingPx: Int

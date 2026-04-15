@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -14,327 +15,291 @@
         android:background="@color/toolbar_color"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_lg">
 
-            <!-- Server Settings -->
-            <TextView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_gateway_title"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp" />
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_server_url"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
 
-            <EditText
-                android:id="@+id/serverUrlInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:minHeight="48dp"
-                android:hint="@string/settings_server_url_hint"
-                android:autofillHints="none"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:backgroundTint="@color/timestamp_text" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_gateway_title" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_server_url_desc"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingTop="4dp"
-                android:paddingBottom="16dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/settings_server_url_desc" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_gateway_token"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingBottom="4dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.Status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="@string/settings_server_url" />
 
-            <EditText
-                android:id="@+id/gatewayTokenInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:minHeight="48dp"
-                android:hint="@string/settings_gateway_token_hint"
-                android:autofillHints="none"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="textPassword"
-                android:singleLine="true"
-                android:backgroundTint="@color/timestamp_text" />
+                    <EditText
+                        android:id="@+id/serverUrlInput"
+                        style="@style/Widget.OpenClaw.InputField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:autofillHints="none"
+                        android:hint="@string/settings_server_url_hint"
+                        android:inputType="textUri"
+                        android:singleLine="true" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_gateway_token_desc"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingTop="4dp"
-                android:paddingBottom="24dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.Status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="@string/settings_gateway_token" />
 
-            <!-- Orchestrator Integration - Standalone section -->
+                    <EditText
+                        android:id="@+id/gatewayTokenInput"
+                        style="@style/Widget.OpenClaw.InputField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:autofillHints="none"
+                        android:hint="@string/settings_gateway_token_hint"
+                        android:inputType="textPassword"
+                        android:singleLine="true" />
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:text="@string/settings_gateway_token_desc" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <LinearLayout
                 android:id="@+id/orchestratorSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="24dp"
-                android:visibility="visible">
+                android:orientation="vertical">
 
-                <TextView
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/settings_orchestrator_dashboard_title"
-                    android:textColor="@color/ai_bubble_text"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:paddingBottom="8dp" />
+                    android:layout_marginTop="@dimen/space_lg"
+                    app:cardBackgroundColor="@color/surface"
+                    app:cardCornerRadius="@dimen/radius_md"
+                    app:cardElevation="0dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/settings_orchestrator_url"
-                    android:textColor="@color/timestamp_text"
-                    android:textSize="12sp"
-                    android:paddingBottom="4dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/space_lg">
 
-                <EditText
-                    android:id="@+id/orchestratorServerUrlInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:minHeight="48dp"
-                    android:layout_gravity="center_horizontal"
-                    android:hint="@string/settings_orchestrator_server_url_hint"
-                    android:autofillHints="none"
-                    android:textColorHint="@color/timestamp_text"
-                    android:textColor="@color/ai_bubble_text"
-                    android:inputType="textUri|textNoSuggestions"
-                    android:singleLine="true"
-                    android:backgroundTint="@color/timestamp_text" />
+                        <TextView
+                            style="@style/TextAppearance.OpenClaw.SectionTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_orchestrator_dashboard_title" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/settings_orchestrator_api_key_desc"
-                    android:textColor="@color/timestamp_text"
-                    android:textSize="12sp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="4dp" />
+                        <TextView
+                            style="@style/TextAppearance.OpenClaw.SectionBody"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_xs"
+                            android:text="@string/settings_orchestrator_desc" />
 
-                <EditText
-                    android:id="@+id/orchestratorApiKeyInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:minHeight="48dp"
-                    android:layout_gravity="center_horizontal"
-                    android:hint="@string/settings_orchestrator_api_key_hint"
-                    android:autofillHints="none"
-                    android:textColorHint="@color/timestamp_text"
-                    android:textColor="@color/ai_bubble_text"
-                    android:inputType="textPassword"
-                    android:singleLine="true"
-                    android:backgroundTint="@color/timestamp_text" />
+                        <TextView
+                            style="@style/TextAppearance.OpenClaw.Status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_lg"
+                            android:text="@string/settings_orchestrator_url" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/settings_orchestrator_desc"
-                    android:textColor="@color/timestamp_text"
-                    android:textSize="12sp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="8dp" />
+                        <EditText
+                            android:id="@+id/orchestratorServerUrlInput"
+                            style="@style/Widget.OpenClaw.InputField"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_sm"
+                            android:autofillHints="none"
+                            android:hint="@string/settings_orchestrator_server_url_hint"
+                            android:inputType="textUri|textNoSuggestions"
+                            android:singleLine="true" />
 
-                <Button
-                    android:id="@+id/orchestratorTestButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minHeight="48dp"
-                    android:text="@string/settings_orchestrator_test"
-                    android:layout_marginTop="4dp" />
+                        <TextView
+                            style="@style/TextAppearance.OpenClaw.Status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_lg"
+                            android:text="@string/settings_orchestrator_api_key" />
 
-                <TextView
-                    android:id="@+id/orchestratorTestStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="488dp"
-                    android:layout_gravity="center_horizontal"
-                    android:textColor="@color/timestamp_text"
-                    android:textSize="12sp"
-                    android:visibility="gone"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp" />
+                        <EditText
+                            android:id="@+id/orchestratorApiKeyInput"
+                            style="@style/Widget.OpenClaw.InputField"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_sm"
+                            android:autofillHints="none"
+                            android:hint="@string/settings_orchestrator_api_key_hint"
+                            android:inputType="textPassword"
+                            android:singleLine="true" />
 
+                        <TextView
+                            style="@style/TextAppearance.OpenClaw.SectionBody"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_sm"
+                            android:text="@string/settings_orchestrator_api_key_desc" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_lg"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/orchestratorTestButton"
+                                style="@style/Widget.OpenClaw.Button.Secondary"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_orchestrator_test" />
+
+                            <TextView
+                                android:id="@+id/orchestratorTestStatus"
+                                style="@style/TextAppearance.OpenClaw.Status"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/space_md"
+                                android:layout_weight="1"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- GitHub Integration -->
-            <TextView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_title"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp" />
+                android:layout_marginTop="@dimen/space_lg"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_token"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
 
-            <EditText
-                android:id="@+id/githubTokenInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:minHeight="48dp"
-                android:hint="@string/settings_github_token_hint"
-                android:autofillHints="none"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="textPassword"
-                android:singleLine="true"
-                android:backgroundTint="@color/timestamp_text" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_github_title" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_token_desc"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingTop="4dp"
-                android:paddingBottom="16dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/settings_github_desc" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_api_url"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingBottom="4dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.Status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="@string/settings_github_token" />
 
-            <EditText
-                android:id="@+id/githubApiUrlInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:minHeight="48dp"
-                android:hint="@string/settings_github_api_url_hint"
-                android:autofillHints="none"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:backgroundTint="@color/timestamp_text" />
+                    <EditText
+                        android:id="@+id/githubTokenInput"
+                        style="@style/Widget.OpenClaw.InputField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:autofillHints="none"
+                        android:hint="@string/settings_github_token_hint"
+                        android:inputType="textPassword"
+                        android:singleLine="true" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_repo"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingTop="16dp"
-                android:paddingBottom="4dp" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:text="@string/settings_github_token_desc" />
 
-            <EditText
-                android:id="@+id/githubDefaultRepoInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:hint="@string/settings_github_repo_hint"
-                android:autofillHints="none"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="text"
-                android:singleLine="true"
-                android:backgroundTint="@color/timestamp_text" />
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.Status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="@string/settings_github_api_url" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxWidth="488dp"
-                android:layout_gravity="center_horizontal"
-                android:text="@string/settings_github_desc"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:paddingTop="8dp"
-                android:paddingBottom="24dp" />
+                    <EditText
+                        android:id="@+id/githubApiUrlInput"
+                        style="@style/Widget.OpenClaw.InputField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:autofillHints="none"
+                        android:hint="@string/settings_github_api_url_hint"
+                        android:inputType="textUri"
+                        android:singleLine="true" />
 
-            <Button
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.Status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_lg"
+                        android:text="@string/settings_github_repo" />
+
+                    <EditText
+                        android:id="@+id/githubDefaultRepoInput"
+                        style="@style/Widget.OpenClaw.InputField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:autofillHints="none"
+                        android:hint="@string/settings_github_repo_hint"
+                        android:inputType="text"
+                        android:singleLine="true" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/saveButton"
-                android:layout_width="wrap_content"
+                style="@style/Widget.OpenClaw.Button.Primary"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:minWidth="200dp"
-                android:maxWidth="320dp"
-                android:text="@string/settings_save"
-                android:backgroundTint="@color/send_button"
-                android:textColor="@color/white" />
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginBottom="@dimen/space_2xl"
+                android:text="@string/settings_save" />
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

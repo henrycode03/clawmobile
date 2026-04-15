@@ -4,9 +4,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -15,217 +15,301 @@
         android:background="@color/toolbar_color"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_lg">
 
-            <!-- Repository Selection -->
-            <TextView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Repository"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingBottom="8dp" />
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
 
-            <TextView
-                android:id="@+id/repoInfo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No repository selected"
-                android:textColor="@color/timestamp_text"
-                android:paddingBottom="8dp" />
-
-            <Button
-                android:id="@+id/refreshButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Refresh Repos"
-                android:backgroundTint="@color/ai_bubble"
-                android:textColor="@color/white" />
-
-            <!-- Pull Requests -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Pull Requests"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="24dp"
-                android:paddingBottom="8dp" />
-
-            <Button
-                android:id="@+id/showPrsButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Show Open PRs"
-                android:backgroundTint="@color/ai_bubble"
-                android:textColor="@color/white" />
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:paddingTop="8dp">
-
-                <EditText
-                    android:id="@+id/prList"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="PRs will appear here..."
-                    android:textColorHint="@color/timestamp_text"
-                    android:textColor="@color/ai_bubble_text"
-                    android:gravity="top"
-                    android:background="@drawable/bg_github_result_panel"
-                    android:inputType="textMultiLine"
-                    android:scrollbars="vertical"
-                    android:focusable="false"
-                    android:clickable="false"
-                    android:textIsSelectable="true" />
-            </ScrollView>
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
 
-            <!-- Issues -->
-            <TextView
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/github_repository_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/github_repository_subtitle" />
+
+                    <TextView
+                        android:id="@+id/repoInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:background="@drawable/bg_github_result_panel"
+                        android:padding="@dimen/space_md"
+                        android:text="No repository selected"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/refreshButton"
+                        style="@style/Widget.OpenClaw.Button.Secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:text="@string/github_refresh_repos" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Issues"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="24dp"
-                android:paddingBottom="8dp" />
+                android:layout_marginTop="@dimen/space_lg"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
 
-            <Button
-                android:id="@+id/showIssuesButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Show Open Issues"
-                android:backgroundTint="@color/ai_bubble"
-                android:textColor="@color/white" />
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:paddingTop="8dp">
-
-                <EditText
-                    android:id="@+id/issueList"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Issues will appear here..."
-                    android:textColorHint="@color/timestamp_text"
-                    android:textColor="@color/ai_bubble_text"
-                    android:gravity="top"
-                    android:background="@drawable/bg_github_result_panel"
-                    android:inputType="textMultiLine"
-                    android:scrollbars="vertical"
-                    android:focusable="false"
-                    android:clickable="false"
-                    android:textIsSelectable="true" />
-            </ScrollView>
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
 
-            <!-- Commit Lookup -->
-            <TextView
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/github_pull_requests_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/github_pull_requests_subtitle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/showPrsButton"
+                        style="@style/Widget.OpenClaw.Button.Primary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:text="@string/github_show_prs" />
+
+                    <EditText
+                        android:id="@+id/prList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:minHeight="140dp"
+                        android:background="@drawable/bg_github_result_panel"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:gravity="top|start"
+                        android:hint="@string/github_prs_hint"
+                        android:inputType="textMultiLine"
+                        android:padding="@dimen/space_md"
+                        android:scrollbars="vertical"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textIsSelectable="true" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Commit Lookup"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="24dp"
-                android:paddingBottom="8dp" />
+                android:layout_marginTop="@dimen/space_lg"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
 
-            <EditText
-                android:id="@+id/commitIdInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="abc123def"
-                android:textColorHint="@color/timestamp_text"
-                android:textColor="@color/ai_bubble_text"
-                android:inputType="text"
-                android:background="@drawable/bg_github_result_panel" />
-
-            <Button
-                android:id="@+id/showCommitButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Show Commit"
-                android:backgroundTint="@color/ai_bubble"
-                android:textColor="@color/white" />
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:paddingTop="8dp">
-
-                <EditText
-                    android:id="@+id/commitInfo"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Commit details will appear here..."
-                    android:textColorHint="@color/timestamp_text"
-                    android:textColor="@color/ai_bubble_text"
-                    android:gravity="top"
-                    android:background="@drawable/bg_github_result_panel"
-                    android:inputType="textMultiLine"
-                    android:scrollbars="vertical"
-                    android:focusable="false"
-                    android:clickable="false"
-                    android:textIsSelectable="true" />
-            </ScrollView>
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
 
-            <!-- Loading Indicator -->
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/github_issues_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/github_issues_subtitle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/showIssuesButton"
+                        style="@style/Widget.OpenClaw.Button.Secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:text="@string/github_show_issues" />
+
+                    <EditText
+                        android:id="@+id/issueList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:minHeight="140dp"
+                        android:background="@drawable/bg_github_result_panel"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:gravity="top|start"
+                        android:hint="@string/github_issues_hint"
+                        android:inputType="textMultiLine"
+                        android:padding="@dimen/space_md"
+                        android:scrollbars="vertical"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textIsSelectable="true" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_lg"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_lg">
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/github_commit_lookup_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/github_commit_lookup_subtitle" />
+
+                    <EditText
+                        android:id="@+id/commitIdInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:background="@drawable/bg_github_result_panel"
+                        android:hint="@string/github_commit_hint"
+                        android:inputType="text"
+                        android:minHeight="@dimen/touch_target"
+                        android:padding="@dimen/space_md"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/showCommitButton"
+                        style="@style/Widget.OpenClaw.Button.Secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:text="@string/github_show_commit" />
+
+                    <EditText
+                        android:id="@+id/commitInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:minHeight="140dp"
+                        android:background="@drawable/bg_github_result_panel"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:gravity="top|start"
+                        android:hint="@string/github_commit_result_hint"
+                        android:inputType="textMultiLine"
+                        android:padding="@dimen/space_md"
+                        android:scrollbars="vertical"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textIsSelectable="true" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <ProgressBar
                 android:id="@+id/loadingIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:layout_marginTop="@dimen/space_lg"
                 android:visibility="gone" />
-
-            <!-- Connection List -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:background="@color/timestamp_text" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Saved Connections"
-                android:textColor="@color/ai_bubble_text"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingTop="12dp"
-                android:paddingBottom="8dp" />
+                android:layout_marginTop="@dimen/space_lg"
+                android:text="@string/github_saved_connections_title"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/emptyView"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:gravity="center"
-                android:text="No connections"
-                android:textColor="@color/timestamp_text"
-                android:textSize="12sp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/repo_recycler_view"
+                style="@style/TextAppearance.OpenClaw.SectionBody"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxHeight="120dp"
-                android:nestedScrollingEnabled="false"
-                android:padding="8dp" />
+                android:layout_marginTop="@dimen/space_xs"
+                android:text="@string/github_saved_connections_subtitle" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginBottom="@dimen/space_2xl"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_md">
+
+                    <TextView
+                        android:id="@+id/emptyView"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="No connections"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/repo_recycler_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxHeight="180dp"
+                        android:nestedScrollingEnabled="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

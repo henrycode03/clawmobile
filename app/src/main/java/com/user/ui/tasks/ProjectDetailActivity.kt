@@ -3,6 +3,7 @@ package com.user.ui.tasks
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -171,6 +172,10 @@ class ProjectDetailActivity : AppCompatActivity() {
             return
         }
 
+        val paddingHorizontal = (16 * resources.displayMetrics.density).toInt()
+        val paddingVertical = (12 * resources.displayMetrics.density).toInt()
+        val sessionBottomMargin = (8 * resources.displayMetrics.density).toInt()
+
         sessions.forEach { session ->
             val sessionView = TextView(this).apply {
                 val activeMarker = if (session.isActive) " • live" else ""
@@ -178,13 +183,14 @@ class ProjectDetailActivity : AppCompatActivity() {
                 val statusLabel = session.status.replace('_', ' ').replaceFirstChar { it.uppercase() }
                 text = "$shortName\n#${session.id} • $statusLabel$activeMarker"
                 textSize = 13f
+                setBackgroundResource(R.drawable.bg_overview_panel)
                 setTextColor(
                     ContextCompat.getColor(
                         context,
                         if (session.isActive) R.color.status_running else R.color.text_secondary
                     )
                 )
-                setPadding(0, 8, 0, 8)
+                setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
                 isClickable = true
                 isFocusable = true
                 setOnClickListener {
@@ -203,6 +209,13 @@ class ProjectDetailActivity : AppCompatActivity() {
                     true
                 }
             }
+            val layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = sessionBottomMargin
+            }
+            sessionView.layoutParams = layoutParams
             binding.activeSessionsContainer.addView(sessionView)
         }
     }

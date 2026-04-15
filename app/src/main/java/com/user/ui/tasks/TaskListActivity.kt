@@ -478,10 +478,21 @@ class TaskListActivity : AppCompatActivity() {
             ContextCompat.getColor(
                 this,
                 when (snapshot.state) {
-                    ControlPlaneState.HEALTHY -> R.color.status_connected
-                    ControlPlaneState.DEGRADED -> R.color.primary_dark
-                    ControlPlaneState.AUTH_ISSUE -> R.color.status_failed
-                    ControlPlaneState.NOT_CONFIGURED -> R.color.status_pending
+                    ControlPlaneState.HEALTHY -> R.color.success_surface
+                    ControlPlaneState.DEGRADED -> R.color.surface_container_high
+                    ControlPlaneState.AUTH_ISSUE -> R.color.error_surface
+                    ControlPlaneState.NOT_CONFIGURED -> R.color.warning_surface
+                }
+            )
+        )
+        binding.orchestratorStatsView.setTextColor(
+            ContextCompat.getColor(
+                this,
+                when (snapshot.state) {
+                    ControlPlaneState.HEALTHY -> R.color.text_primary
+                    ControlPlaneState.DEGRADED -> R.color.text_primary
+                    ControlPlaneState.AUTH_ISSUE -> R.color.white
+                    ControlPlaneState.NOT_CONFIGURED -> R.color.text_primary
                 }
             )
         )

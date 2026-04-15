@@ -4,15 +4,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/surface_container_low"
+    app:cardCornerRadius="@dimen/radius_md"
+    app:cardElevation="0dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/space_lg">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -25,35 +26,36 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="@color/card_text_primary"
-                android:textSize="14sp"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
                 android:textStyle="bold"/>
 
             <ImageButton
                 android:id="@+id/pinProjectButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/pin_project"
-                android:padding="8dp"
-                android:src="@drawable/ic_star_outline"
-                app:tint="@color/timestamp_text" />
+                android:padding="12dp"
+                android:src="@drawable/ic_star_outline" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/projectStatusSummary"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="@color/card_text_secondary"
-            android:textSize="11sp"/>
+            android:layout_marginTop="@dimen/space_xs"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"/>
 
-        <!-- Project Stats Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="@dimen/space_md"
+            android:background="@drawable/bg_github_result_panel"
+            android:paddingTop="@dimen/space_md"
+            android:paddingBottom="@dimen/space_md">
 
             <!-- Running Tasks -->
             <LinearLayout
@@ -68,15 +70,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/status_running"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Running"
-                    android:textColor="@color/card_text_secondary"
-                    android:textSize="10sp"/>
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"/>
             </LinearLayout>
 
             <!-- Pending Tasks -->
@@ -92,15 +94,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/status_pending"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Pending"
-                    android:textColor="@color/card_text_secondary"
-                    android:textSize="10sp"/>
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"/>
             </LinearLayout>
 
             <!-- Completed Tasks -->
@@ -116,15 +118,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/status_completed"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Done"
-                    android:textColor="@color/card_text_secondary"
-                    android:textSize="10sp"/>
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"/>
             </LinearLayout>
 
             <LinearLayout
@@ -139,25 +141,25 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@android:color/holo_red_light"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Failed"
-                    android:textColor="@color/card_text_secondary"
-                    android:textSize="10sp"/>
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"/>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Progress Bar -->
         <ProgressBar
             android:id="@+id/projectProgressBar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="6dp"
+            android:layout_marginTop="@dimen/space_md"
+            android:progressDrawable="@drawable/custom_progress_bar"
             android:max="100"/>
 
     </LinearLayout>

@@ -33,16 +33,21 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingLeft="16dp"
-            android:paddingTop="4dp"
-            android:paddingRight="16dp"
-            android:paddingBottom="12dp">
+            android:paddingLeft="@dimen/space_lg"
+            android:paddingTop="@dimen/space_sm"
+            android:paddingRight="@dimen/space_lg"
+            android:paddingBottom="@dimen/space_md">
 
             <TextView
                 android:id="@+id/statusText"
                 style="@style/TextAppearance.OpenClaw.Status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_status_chip"
+                android:paddingLeft="@dimen/space_md"
+                android:paddingTop="@dimen/space_xs"
+                android:paddingRight="@dimen/space_md"
+                android:paddingBottom="@dimen/space_xs"
                 android:text="@string/chat_status_disconnected"
                 android:textColor="@color/status_disconnected" />
 
@@ -106,10 +111,10 @@
             android:layout_height="wrap_content"
             android:background="@color/background"
             android:orientation="vertical"
-            android:paddingLeft="8dp"
-            android:paddingTop="8dp"
-            android:paddingRight="8dp"
-            android:paddingBottom="8dp"
+            android:paddingLeft="@dimen/space_md"
+            android:paddingTop="@dimen/space_sm"
+            android:paddingRight="@dimen/space_md"
+            android:paddingBottom="@dimen/space_md"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -218,12 +223,12 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_chat_input"
                 android:gravity="center_vertical"
-                android:minHeight="56dp"
+                android:minHeight="@dimen/button_height"
                 android:orientation="horizontal"
-                android:paddingLeft="8dp"
-                android:paddingTop="4dp"
-                android:paddingRight="8dp"
-                android:paddingBottom="4dp">
+                android:paddingLeft="@dimen/space_sm"
+                android:paddingTop="@dimen/space_sm"
+                android:paddingRight="@dimen/space_sm"
+                android:paddingBottom="@dimen/space_sm">
 
                 <ImageButton
                     android:id="@+id/attachButton"
@@ -270,17 +275,14 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sendButton"
+                    style="@style/Widget.OpenClaw.Button.Primary"
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
+                    android:layout_height="@dimen/touch_target"
+                    android:layout_marginStart="@dimen/space_xs"
                     android:minWidth="48dp"
-                    android:minHeight="48dp"
                     android:text="@string/send_message"
-                    android:textAllCaps="false"
-                    android:textColor="@color/white"
-                    app:backgroundTint="@color/send_button"
-                    app:cornerRadius="16dp" />
+                    android:paddingLeft="@dimen/space_lg"
+                    android:paddingRight="@dimen/space_lg" />
             </LinearLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>

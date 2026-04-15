@@ -22,29 +22,27 @@
 
     <item
         android:id="@+id/action_github"
-        android:icon="@android:drawable/ic_menu_share"
         android:title="GitHub"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_commands"
-        android:title="Cmd"
-        app:showAsAction="ifRoom" />
+        android:title="Commands"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_code_block"
-        android:title="Code"
-        app:showAsAction="ifRoom" />
+        android:title="Code Block"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_settings"
-        android:icon="@android:drawable/ic_menu_preferences"
         android:title="Settings"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_help"
-        android:icon="@android:drawable/ic_menu_help"
-        android:title="Guide"
+        android:title="Help"
         app:showAsAction="never" />
+
 </menu>
