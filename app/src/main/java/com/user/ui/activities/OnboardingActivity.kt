@@ -3,6 +3,9 @@ package com.user.ui.activities
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.viewpager2.widget.ViewPager2
 import com.user.R
 import com.user.data.PrefsManager
@@ -56,6 +59,7 @@ class OnboardingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityOnboardingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemInsets()
 
         prefsManager = PrefsManager(this)
         guideMode = intent.getBooleanExtra(EXTRA_GUIDE_MODE, false)
@@ -85,6 +89,27 @@ class OnboardingActivity : AppCompatActivity() {
         })
 
         updateActions(0)
+    }
+
+    private fun applySystemInsets() {
+        val rootStart = binding.root.paddingStart
+        val rootTop = binding.root.paddingTop
+        val rootEnd = binding.root.paddingEnd
+        val rootBottom = binding.root.paddingBottom
+        val buttonRowBottom = binding.buttonRow.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.root.setPadding(
+                rootStart + systemBars.left,
+                rootTop + systemBars.top,
+                rootEnd + systemBars.right,
+                rootBottom
+            )
+            binding.buttonRow.updatePadding(bottom = buttonRowBottom + systemBars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun updateActions(position: Int) {

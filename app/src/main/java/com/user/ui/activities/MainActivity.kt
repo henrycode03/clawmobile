@@ -129,10 +129,22 @@ class MainActivity : AppCompatActivity() {
             supportActionBar?.title = getString(R.string.toolbar_title)
             viewModel.startNewSession()
             requestNotificationPermission()
-            viewModel.startService(this)
+            viewModel.stopService(this)
         }
 
         ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.stopService(this)
+        viewModel.connect()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.disconnect()
+        viewModel.stopService(this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -321,39 +333,6 @@ class MainActivity : AppCompatActivity() {
             ).show()
         }
         binding.messageEditText.dismissDropDown()
-    }
-
-    private fun insertCodeBlock() {
-        val editText = binding.messageEditText
-        val currentText = editText.text?.toString().orEmpty()
-        val start = editText.selectionStart.coerceAtLeast(0)
-        val end = editText.selectionEnd.coerceAtLeast(0)
-        val selectionStart = minOf(start, end)
-        val selectionEnd = maxOf(start, end)
-        val selectedText = currentText.substring(selectionStart, selectionEnd)
-
-        val replacement = if (selectedText.isNotEmpty()) {
-            "```\n$selectedText\n```"
-        } else {
-            "```\n\n```"
-        }
-
-        val updatedText = buildString {
-            append(currentText.substring(0, selectionStart))
-            append(replacement)
-            append(currentText.substring(selectionEnd))
-        }
-        editText.setText(updatedText)
-
-        if (selectedText.isNotEmpty()) {
-            val cursor = selectionStart + replacement.length
-            editText.setSelection(cursor)
-        } else {
-            val cursor = selectionStart + 4
-            editText.setSelection(cursor)
-        }
-        editText.requestFocus()
-        Toast.makeText(this, getString(R.string.code_block_inserted), Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleCommandChips() {
@@ -640,10 +619,6 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_commands -> {
                 toggleCommandChips()
-                true
-            }
-            R.id.action_code_block -> {
-                insertCodeBlock()
                 true
             }
             R.id.action_settings -> {
