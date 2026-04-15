@@ -11,39 +11,42 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/background"
         android:orientation="vertical">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
+            android:background="@color/toolbar_color"
             app:navigationIcon="@drawable/ic_back"
-            app:titleTextColor="@color/text_primary"/>
+            app:titleTextColor="@color/text_primary" />
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_lg"
+            android:layout_marginEnd="@dimen/space_lg"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/sessionStatusBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/badge_running"
-                    android:paddingStart="16dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="8dp"
+                    android:paddingStart="@dimen/space_lg"
+                    android:paddingTop="@dimen/space_sm"
+                    android:paddingEnd="@dimen/space_lg"
+                    android:paddingBottom="@dimen/space_sm"
                     android:text="RUNNING"
                     android:textColor="@color/white"
                     android:textStyle="bold" />
@@ -52,106 +55,107 @@
                     android:id="@+id/sessionSummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="@dimen/space_lg"
                     android:text="Loading session..."
                     android:textColor="@color/text_primary"
-                    android:textSize="15sp" />
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/sessionStartedAt"
+                    style="@style/TextAppearance.OpenClaw.SectionBody"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/refreshButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="Refresh" />
+                    android:layout_marginTop="@dimen/space_sm" />
 
                 <LinearLayout
-                    android:id="@+id/sessionActionRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="@dimen/space_lg"
                     android:orientation="horizontal">
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/resumeButton"
+                        android:id="@+id/refreshButton"
+                        style="@style/Widget.OpenClaw.Button.Secondary"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
+                        android:layout_marginEnd="@dimen/space_sm"
                         android:layout_weight="1"
+                        android:text="Refresh" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/resumeButton"
+                        style="@style/Widget.OpenClaw.Button.Primary"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_sm"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:layout_weight="1"
+                        android:maxLines="1"
+                        android:textSize="14sp"
                         android:text="Resume"
                         android:visibility="gone" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/stopButton"
+                        style="@style/Widget.OpenClaw.Button.Danger"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginStart="@dimen/space_sm"
                         android:layout_weight="1"
                         android:text="Stop"
-                        android:visibility="gone"
-                        app:backgroundTint="@color/status_failed" />
+                        android:visibility="gone" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
+                    style="@style/TextAppearance.OpenClaw.SectionTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Task Progress"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:text="Task Progress" />
 
                 <TextView
                     android:id="@+id/taskProgressView"
+                    style="@style/TextAppearance.OpenClaw.SectionBody"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="@dimen/space_sm" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/sessionFailureCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            android:visibility="gone">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -165,30 +169,30 @@
                     android:id="@+id/sessionFailureSummaryView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:lineSpacingExtra="3dp"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/recoveryCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
             android:visibility="gone"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
                     android:id="@+id/recoveryTitle"
@@ -202,84 +206,83 @@
                     android:id="@+id/recoverySummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:lineSpacingExtra="3dp"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
+                    style="@style/TextAppearance.OpenClaw.SectionTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Checkpoints"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:text="Checkpoints" />
 
                 <TextView
                     android:id="@+id/checkpointSummaryView"
+                    style="@style/TextAppearance.OpenClaw.SectionBody"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="@dimen/space_sm" />
 
                 <TextView
                     android:id="@+id/checkpointListView"
+                    style="@style/TextAppearance.OpenClaw.CodeReadable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:background="@drawable/bg_github_result_panel"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.01"
+                    android:padding="@dimen/space_md"
+                    android:textColor="@color/text_primary" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:layout_marginBottom="@dimen/space_2xl"
             app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/space_lg">
 
                 <TextView
+                    style="@style/TextAppearance.OpenClaw.SectionTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recent Logs"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:text="Recent Logs" />
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="@dimen/space_sm"
                     android:scrollbars="none">
 
                     <LinearLayout
@@ -289,55 +292,56 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/logFilterAllButton"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            style="@style/Widget.OpenClaw.Button.Secondary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="All" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/logFilterErrorsButton"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            style="@style/Widget.OpenClaw.Button.Secondary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="@dimen/space_sm"
                             android:text="Errors" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/logFilterOrchestrationButton"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            style="@style/Widget.OpenClaw.Button.Secondary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="@dimen/space_sm"
                             android:text="Phases" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/logFilterCheckpointButton"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            style="@style/Widget.OpenClaw.Button.Secondary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="@dimen/space_sm"
                             android:text="Checkpoints" />
                     </LinearLayout>
                 </HorizontalScrollView>
 
                 <TextView
                     android:id="@+id/logTimelineHint"
+                    style="@style/TextAppearance.OpenClaw.SectionBody"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Newest first. Use filters to focus on blockers, phases, or checkpoints."
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="Newest first. Use filters to focus on blockers, phases, or checkpoints." />
 
                 <TextView
                     android:id="@+id/recentLogsView"
+                    style="@style/TextAppearance.OpenClaw.CodeReadable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:background="@drawable/bg_github_result_panel"
+                    android:fontFamily="sans-serif"
+                    android:padding="@dimen/space_md"
+                    android:textColor="@color/text_primary" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

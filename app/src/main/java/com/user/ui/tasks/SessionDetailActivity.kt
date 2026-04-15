@@ -219,9 +219,7 @@ class SessionDetailActivity : AppCompatActivity() {
         binding.resumeButton.visibility = if (resumable) View.VISIBLE else View.GONE
         binding.stopButton.visibility =
             if (status == "running" || status == "paused") View.VISIBLE else View.GONE
-        binding.resumeButton.text = getString(
-            if (checkpointCount > 0) R.string.resume_session_action else R.string.resume_button_label
-        )
+        binding.resumeButton.text = getString(R.string.resume_button_label)
     }
 
     private fun stopSession() {
@@ -271,11 +269,11 @@ class SessionDetailActivity : AppCompatActivity() {
             button.setTextColor(ContextCompat.getColor(this, R.color.white))
             button.strokeWidth = 0
         } else {
-            button.setBackgroundColor(ContextCompat.getColor(this, R.color.surface))
+            button.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_container_low))
             button.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
-            button.strokeWidth = 2
+            button.strokeWidth = 1
             button.strokeColor = android.content.res.ColorStateList.valueOf(
-                ContextCompat.getColor(this, R.color.border)
+                ContextCompat.getColor(this, R.color.outline_subtle)
             )
         }
     }

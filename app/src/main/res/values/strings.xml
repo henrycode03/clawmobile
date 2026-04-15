@@ -11,6 +11,7 @@
     <string name="voice_input">Voice input</string>
     <string name="send_message">Send</string>
     <string name="attachment_options">Attach</string>
+    <string name="attachment_sheet_subtitle">Add supporting files before you send your message.</string>
     <string name="attachment_gallery">Gallery</string>
     <string name="attachment_documents">Documents</string>
     <string name="attachment_voice">Voice</string>
@@ -135,5 +136,33 @@
     <string name="project_unpinned">Project unpinned</string>
     <string name="session_pinned">Session pinned</string>
     <string name="session_unpinned">Session unpinned</string>
+    <string name="github_repository_title">Repository</string>
+    <string name="github_repository_subtitle">Choose the repo context before loading pull requests, issues, or commit details.</string>
+    <string name="github_refresh_repos">Refresh repositories</string>
+    <string name="github_pull_requests_title">Pull Requests</string>
+    <string name="github_pull_requests_subtitle">Prioritize open reviews and recent collaboration signals.</string>
+    <string name="github_show_prs">Show open PRs</string>
+    <string name="github_prs_hint">Open pull requests will appear here.</string>
+    <string name="github_issues_title">Issues</string>
+    <string name="github_issues_subtitle">Check the current issue queue without leaving the app.</string>
+    <string name="github_show_issues">Show open issues</string>
+    <string name="github_issues_hint">Open issues will appear here.</string>
+    <string name="github_commit_lookup_title">Commit Lookup</string>
+    <string name="github_commit_lookup_subtitle">Paste a short SHA or full commit ID to inspect the latest details.</string>
+    <string name="github_commit_hint">abc123def</string>
+    <string name="github_show_commit">Show commit</string>
+    <string name="github_commit_result_hint">Commit details will appear here.</string>
+    <string name="github_saved_connections_title">Saved Connections</string>
+    <string name="github_saved_connections_subtitle">Tap a saved source to switch repository context quickly.</string>
+    <string name="main_menu_title">Quick actions</string>
+    <string name="main_menu_subtitle">Jump to the tools you use most.</string>
+    <string name="main_menu_new_chat">New chat</string>
+    <string name="main_menu_history">History</string>
+    <string name="main_menu_tasks">Tasks</string>
+    <string name="main_menu_github">GitHub</string>
+    <string name="main_menu_commands">Commands</string>
+    <string name="main_menu_code">Code block</string>
+    <string name="main_menu_settings">Settings</string>
+    <string name="main_menu_guide">Guide</string>
 
 </resources>
