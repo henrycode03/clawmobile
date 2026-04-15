@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var chatAdapter: ChatAdapter
     private val viewModel: ChatViewModel by viewModels()
+    private lateinit var prefsManager: PrefsManager
     private var selectedFileUri: Uri? = null
     private var commandsVisible: Boolean = false
     private val commandTemplates = listOf(
@@ -95,14 +96,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        val prefs = PrefsManager(this)
-        if (!prefs.onboardingCompleted) {
+        prefsManager = PrefsManager(this)
+        if (!prefsManager.onboardingCompleted) {
             startActivity(Intent(this, OnboardingActivity::class.java))
             finish()
             return
         }
 
-        if (prefs.gatewayToken.isEmpty()) {
+        if (prefsManager.gatewayToken.isEmpty()) {
             Toast.makeText(this, "Please enter your Gateway Token", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, SettingsActivity::class.java))
             finish()
@@ -115,6 +116,7 @@ class MainActivity : AppCompatActivity() {
         setupQuickCommandChips()
         setupCommandSuggestions()
         updateAttachmentUi()
+        restoreInputHistory()
         handlePrefillIntent(intent)
 
         val sessionId = intent.getStringExtra("session_id")
@@ -430,6 +432,7 @@ class MainActivity : AppCompatActivity() {
     private fun rememberInput(text: String) {
         if (inputHistory.lastOrNull() != text) {
             inputHistory.add(text)
+            prefsManager.saveRecentInputHistory(inputHistory)
         }
         historyIndex = inputHistory.size
     }
@@ -460,6 +463,12 @@ class MainActivity : AppCompatActivity() {
         val text = inputHistory[historyIndex]
         binding.messageEditText.setText(text)
         binding.messageEditText.setSelection(text.length)
+    }
+
+    private fun restoreInputHistory() {
+        inputHistory.clear()
+        inputHistory.addAll(prefsManager.getRecentInputHistory())
+        historyIndex = inputHistory.size
     }
 
     private fun showAttachmentSheet() {

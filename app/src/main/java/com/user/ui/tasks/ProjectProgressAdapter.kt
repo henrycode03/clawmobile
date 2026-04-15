@@ -121,15 +121,25 @@ class ProjectProgressAdapter(
             projectFailedCount.text = failed.toString()
 
             projectStatusSummary.text = when {
-                failed > 0 -> "$total tasks • $failed failed • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
-                running > 0 -> "$total tasks • Active now • $activeSessions active session${if (activeSessions == 1) "" else "s"}"
-                pending > 0 -> "$total tasks • Waiting on $pending task${if (pending == 1) "" else "s"}"
+                failed > 0 -> buildString {
+                    append("Needs attention")
+                    if (activeSessions > 0) {
+                        append(" • $activeSessions live")
+                    }
+                }
+                running > 0 -> buildString {
+                    append("Active now")
+                    if (activeSessions > 0) {
+                        append(" • $activeSessions live")
+                    }
+                }
+                pending > 0 -> "Waiting to run"
                 total == 0 -> "No tasks yet"
-                else -> "$total tasks • $completed completed"
+                else -> "Completed"
             }
 
             // Calculate completion percentage if we have total tasks
-            if (total > 0) {
+            if (total > 0 && (completed > 0 || failed > 0)) {
                 val percent = ((completed.toFloat()) / total * 100).toInt()
                 projectProgressBar.progress = percent
                 projectProgressBar.visibility = View.VISIBLE
