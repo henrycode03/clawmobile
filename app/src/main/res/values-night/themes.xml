@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.OpenClawMobileAssistant"
-        parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/toolbar_color</item>
-        <item name="colorPrimaryVariant">@color/toolbar_color</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/send_button</item>
-        <item name="colorOnSecondary">@color/white</item>
+        parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- MD3 dark-mode color role overrides -->
+        <item name="colorPrimary">@color/md3_primary</item>
+        <item name="colorOnPrimary">@color/md3_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md3_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md3_on_primary_container</item>
+        <item name="colorSecondary">@color/md3_secondary</item>
+        <item name="colorOnSecondary">@color/md3_on_secondary</item>
+        <item name="colorTertiary">@color/md3_tertiary</item>
+        <item name="colorSurface">@color/md3_surface</item>
+        <item name="colorSurfaceVariant">@color/md3_surface_variant</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOutline">@color/md3_outline</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

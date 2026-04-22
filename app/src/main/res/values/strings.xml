@@ -89,7 +89,7 @@
     <string name="command_action_project_next">What next?</string>
     <string name="command_action_task_diagnose">Diagnose task</string>
     <string name="command_action_session_resume">Resume session</string>
-    <string name="message_hint_command">Message / CMD</string>
+    <string name="message_hint_command">Message the agent</string>
     <string name="retry_task">RETRY TASK</string>
     <string name="retry_task_title">Retry Task</string>
     <string name="retry_task_message">Queue this task for a fresh run in Orchestrator?</string>
@@ -165,5 +165,130 @@
     <string name="main_menu_commands">Commands</string>
     <string name="main_menu_settings">Settings</string>
     <string name="main_menu_guide">Guide</string>
+    <string name="chat_history_title">Saved Chats</string>
+    <string name="chat_history_empty">No saved chat history yet.</string>
+    <string name="chat_history_delete_title">Delete saved chat</string>
+    <string name="chat_history_delete_message">Remove \"%1$s\" from saved chat history?</string>
+    <string name="chat_history_delete_confirm">Delete</string>
+    <string name="project_picker_title">Choose a project</string>
+    <string name="project_picker_loading">Loading projects…</string>
+    <string name="project_picker_empty">No projects are available yet.</string>
+    <string name="project_picker_missing_config">Configure Orchestrator in Settings to browse projects.</string>
+    <string name="project_picker_error">Unable to load projects right now.</string>
+    <string name="task_hub_jump_sessions">Sessions</string>
+    <string name="task_hub_jump_projects">Projects</string>
+    <string name="task_hub_jump_tasks">Tasks</string>
+    <string name="task_hub_sessions_title">Sessions</string>
+    <string name="task_hub_sessions_subtitle">Latest failed, running, and resumable work.</string>
+    <string name="task_hub_sessions_all">All sessions</string>
+    <string name="task_hub_projects_title">Projects</string>
+    <string name="task_hub_projects_subtitle">Pinned projects stay on top. Tap a project to inspect details.</string>
+    <string name="task_hub_tasks_title">Tasks</string>
+    <string name="task_hub_tasks_subtitle">Search and filter the current task queue.</string>
+
+    <!-- Status badge labels -->
+    <string name="status_running">Running</string>
+    <string name="status_done">Done</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_approved">Approved</string>
+    <string name="status_rejected">Rejected</string>
+    <string name="status_timeout">Timeout</string>
+    <string name="status_unknown">Unknown</string>
+
+    <!-- Offline banner -->
+    <string name="offline_banner_message">Last updated (unknown time) — Tap to retry</string>
+    <string name="offline_banner_message_with_time">Last updated %d min ago — Tap to retry</string>
+    <string name="offline_icon_description">Offline</string>
+    <string name="retry">Retry</string>
+
+    <!-- Navigation -->
+    <string name="nav_sessions">Sessions</string>
+    <string name="nav_projects">Projects</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_permissions">Approvals</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Start Session bottom sheet -->
+    <string name="start_session_title">Start New Session</string>
+    <string name="start_session_project_label">Project</string>
+    <string name="start_session_project_hint">Select a project</string>
+    <string name="start_session_name_label">Session Name</string>
+    <string name="start_session_name_hint">Enter session name</string>
+    <string name="start_session_task_label">Task (optional)</string>
+    <string name="start_session_task_hint">Select a task (optional)</string>
+    <string name="start_session_confirm">Start Session</string>
+    <string name="start_session_cancel">Cancel</string>
+    <string name="start_session_loading">Starting session…</string>
+    <string name="start_session_error">Could not start session. Please try again.</string>
+
+    <!-- Common -->
+    <string name="cancel">Cancel</string>
+    <string name="error_generic">An error occurred. Please try again.</string>
+
+    <!-- Permission screen labels -->
+    <string name="permissions_title">Approvals</string>
+    <string name="permissions_intro_title">When approvals appear</string>
+    <string name="permissions_intro_body">Approvals are for sensitive agent actions such as shell commands, installs, file changes, deletes, or deploy-like steps. Routine project, task, and session browsing does not need approval.</string>
+    <string name="permissions_pending_section">Pending approvals</string>
+    <string name="permissions_resolved_section">Resolved</string>
+    <string name="permissions_empty_pending">No pending approvals</string>
+    <string name="permissions_empty_resolved">No resolved approvals</string>
+    <string name="permissions_approve">Approve</string>
+    <string name="permissions_reject">Reject</string>
+    <string name="permissions_approve_success">Approval granted</string>
+    <string name="permissions_reject_success">Approval rejected</string>
+    <string name="permissions_action_failed">Action failed. Please try again.</string>
+    <string name="permissions_notification_title">Approval Request</string>
+    <string name="permissions_notification_channel">Approval Requests</string>
+    <string name="permissions_badge_content_desc">%d pending approvals</string>
+
+    <!-- Checkpoint bottom sheet labels -->
+    <string name="checkpoints_title">Checkpoints</string>
+    <string name="checkpoints_empty">No checkpoints available</string>
+    <string name="checkpoints_load">Load</string>
+    <string name="checkpoints_delete">Delete</string>
+    <string name="checkpoints_load_confirm_title">Load Checkpoint</string>
+    <string name="checkpoints_load_confirm_message">Restore session to checkpoint \"%s\"?</string>
+    <string name="checkpoints_load_success">Checkpoint loaded</string>
+    <string name="checkpoints_load_failed">Could not load checkpoint</string>
+    <string name="checkpoints_delete_success">Checkpoint deleted</string>
+    <string name="checkpoints_delete_failed">Could not delete checkpoint</string>
+    <string name="checkpoints_undo">Undo</string>
+    <string name="checkpoints_batch_delete">Delete Selected</string>
+    <string name="checkpoints_steps">%d steps</string>
+
+    <!-- Workspace review button text -->
+    <string name="workspace_review_title">Workspace Review</string>
+    <string name="workspace_review_promote">Promote</string>
+    <string name="workspace_review_request_changes">Request Changes</string>
+    <string name="workspace_review_note_hint">Add a note (optional)</string>
+    <string name="workspace_review_promoted_badge">Promoted</string>
+    <string name="workspace_review_changes_requested_badge">Changes Requested</string>
+    <string name="workspace_review_success">Review submitted</string>
+    <string name="workspace_review_failed">Could not submit review</string>
+
+    <!-- Connection status -->
+    <string name="connection_status_connected">Connected</string>
+    <string name="connection_status_disconnected">Disconnected</string>
+    <string name="connection_status_checking">Checking…</string>
+
+    <!-- Session detail / log stream -->
+    <string name="log_stream_reconnecting">Reconnecting…</string>
+    <string name="log_stream_offline">Offline — last 10 logs shown</string>
+    <string name="session_stop">Stop</string>
+    <string name="session_pause">Pause</string>
+    <string name="session_resume_label">Resume</string>
+    <string name="session_checkpoints">Checkpoints</string>
+
+    <!-- Task list / filter -->
+    <string name="filter_all">All</string>
+    <string name="filter_pending">Pending</string>
+    <string name="filter_running">Running</string>
+    <string name="filter_done">Done</string>
+    <string name="filter_failed">Failed</string>
+    <string name="filter_paused">Paused</string>
+    <string name="task_sequence_indicator">%1$d of %2$d</string>
 
 </resources>

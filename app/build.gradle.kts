@@ -101,6 +101,8 @@ dependencies {
     implementation(libs.activity.ktx)
 
     implementation(libs.bouncycastle)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.work.runtime)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

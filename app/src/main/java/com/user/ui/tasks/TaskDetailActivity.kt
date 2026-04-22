@@ -37,6 +37,7 @@ class TaskDetailActivity : AppCompatActivity() {
     private var recommendedRecoveryAction: RecoveryAction = RecoveryAction.RETRY_TASK
     private var recoveryReason: String? = null
     private var recoverySessionId: String? = null
+    private var workspaceStatus: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +77,7 @@ class TaskDetailActivity : AppCompatActivity() {
             if (task != null) {
                 supportActionBar?.title = task.title
                 bindTask(task)
+                loadWorkspaceStatusFromApi(taskId)
             } else {
                 supportActionBar?.title = "Task"
                 binding.taskTitle.text = "Task unavailable"
@@ -86,11 +88,72 @@ class TaskDetailActivity : AppCompatActivity() {
                 binding.taskError.visibility = android.view.View.GONE
                 binding.taskErrorLabel.visibility = android.view.View.GONE
                 binding.recoveryCard.visibility = View.GONE
+                binding.workspaceReviewCard.visibility = View.GONE
                 binding.approveButton.visibility = android.view.View.GONE
                 binding.rejectButton.visibility = android.view.View.GONE
                 binding.startButton.visibility = android.view.View.GONE
             }
         }
+        viewModel.reviewResult.observe(this) { result ->
+            result.onSuccess {
+                com.google.android.material.snackbar.Snackbar.make(
+                    binding.root, R.string.workspace_review_success, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                ).show()
+                loadTask(taskId)
+            }.onFailure { error ->
+                com.google.android.material.snackbar.Snackbar.make(
+                    binding.root, error.message ?: getString(R.string.workspace_review_failed),
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun loadWorkspaceStatusFromApi(taskId: String) {
+        val client = orchestratorClient ?: return
+        lifecycleScope.launch {
+            client.getTaskDetail(taskId).onSuccess { detail ->
+                workspaceStatus = detail.workspaceStatus
+                updateWorkspaceReviewCard()
+            }
+        }
+    }
+
+    private fun updateWorkspaceReviewCard() {
+        val task = currentTask ?: return
+        val isDone = task.status == TaskStatus.COMPLETED
+        when {
+            !isDone -> binding.workspaceReviewCard.visibility = View.GONE
+            workspaceStatus == null -> {
+                binding.workspaceReviewCard.visibility = View.VISIBLE
+                binding.reviewNoteLayout.visibility = View.VISIBLE
+                binding.promoteButton.visibility = View.VISIBLE
+                binding.requestChangesButton.visibility = View.VISIBLE
+                binding.workspaceResolvedBadge.visibility = View.GONE
+                binding.promoteButton.setOnClickListener { submitReview("promote") }
+                binding.requestChangesButton.setOnClickListener { submitReview("request_changes") }
+            }
+            else -> {
+                binding.workspaceReviewCard.visibility = View.VISIBLE
+                binding.reviewNoteLayout.visibility = View.GONE
+                binding.promoteButton.visibility = View.GONE
+                binding.requestChangesButton.visibility = View.GONE
+                binding.workspaceResolvedBadge.visibility = View.VISIBLE
+                binding.workspaceResolvedBadge.text = when (workspaceStatus) {
+                    "promoted" -> getString(R.string.workspace_review_promoted_badge)
+                    "changes_requested" -> getString(R.string.workspace_review_changes_requested_badge)
+                    else -> workspaceStatus
+                }
+            }
+        }
+    }
+
+    private fun submitReview(action: String) {
+        val task = currentTask ?: return
+        val note = binding.reviewNoteInput.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        binding.promoteButton.isEnabled = false
+        binding.requestChangesButton.isEnabled = false
+        viewModel.submitReview(task.taskId, action, note)
     }
 
     private fun bindTask(task: Task) {
@@ -136,6 +199,7 @@ class TaskDetailActivity : AppCompatActivity() {
         bindRawOutput(task)
 
         updateRecoveryState(task)
+        updateWorkspaceReviewCard()
 
         // Show/hide action buttons based on status
         updateActionButtons(task.status)

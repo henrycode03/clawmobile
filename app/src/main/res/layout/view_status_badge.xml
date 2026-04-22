@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <TextView
+        android:id="@+id/status_badge_label"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/status_chip_height"
+        android:paddingHorizontal="10dp"
+        android:gravity="center"
+        android:textSize="11sp"
+        android:textAllCaps="false"
+        android:background="@drawable/bg_status_chip"
+        tools:text="running"
+        tools:textColor="@color/status_running" />
+
+</merge>

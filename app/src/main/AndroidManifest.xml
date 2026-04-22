@@ -31,6 +31,7 @@
         </activity>
 
         <activity android:name=".ui.activities.OnboardingActivity" android:exported="false" />
+        <activity android:name=".ui.activities.ChatHistoryActivity" android:exported="false" />
         <activity android:name=".ui.activities.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.activities.SessionsActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskListActivity" android:exported="false" />
@@ -38,6 +39,11 @@
         <activity android:name=".ui.tasks.SessionDetailActivity" android:exported="false" />
         <activity android:name=".ui.tasks.TaskDetailActivity" android:exported="false" />
         <activity android:name=".ui.tools.GitHubActivity" android:exported="false" />
+        <activity android:name=".ui.permissions.PermissionsActivity" android:exported="false" />
+
+        <receiver
+            android:name=".service.PermissionActionReceiver"
+            android:exported="false" />
 
         <service
             android:name=".service.GatewayConnectionService"

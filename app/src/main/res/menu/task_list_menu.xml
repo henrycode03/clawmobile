@@ -9,17 +9,7 @@
         app:showAsAction="ifRoom"/>
 
     <item
-        android:id="@+id/action_filter_pending"
-        android:title="Filter: Pending"
-        app:showAsAction="never"/>
-
-    <item
-        android:id="@+id/action_filter_active"
-        android:title="Filter: Running"
-        app:showAsAction="never"/>
-
-    <item
-        android:id="@+id/action_filter_all"
-        android:title="Filter: All"
+        android:id="@+id/action_permissions"
+        android:title="@string/nav_permissions"
         app:showAsAction="never"/>
 </menu>

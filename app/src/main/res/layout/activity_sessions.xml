@@ -1,43 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/background"
     android:fitsSystemWindows="true">
 
-    <androidx.appcompat.widget.Toolbar
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/toolbar_color"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+        android:background="@color/md3_surface"
+        app:title="@string/nav_sessions"
+        app:titleTextColor="@color/text_primary"
+        app:navigationIconTint="@color/text_primary" />
 
-    <EditText
-        android:id="@+id/searchInput"
+    <!-- Status filter ChipGroup -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:background="@drawable/bg_chat_input"
-        android:hint="Search sessions"
-        android:imeOptions="actionDone"
-        android:inputType="text"
-        android:minHeight="48dp"
-        android:paddingStart="16dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="12dp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary" />
+        android:scrollbars="none"
+        android:paddingHorizontal="@dimen/space_lg"
+        android:paddingVertical="@dimen/space_sm">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/statusFilterGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:chipSpacingHorizontal="@dimen/space_sm">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterAll"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_all"
+                android:checked="true" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterRunning"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_running" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterPaused"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_paused" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterDone"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_done" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterFailed"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_failed" />
+
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
+
+    <!-- Offline banner -->
+    <com.user.ui.components.OfflineBannerView
+        android:id="@+id/offlineBanner"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min"
+        android:background="@color/warning_surface"
+        android:orientation="horizontal"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/sessionsRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp" />
+        android:padding="@dimen/space_sm"
+        android:clipToPadding="false" />
+
+    <!-- Extended FAB for Start Session -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabStartSession"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="@dimen/space_lg"
+        android:text="@string/start_session_title"
+        app:icon="@android:drawable/ic_input_add"
+        app:iconTint="@color/white"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/md3_primary"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true" />
 
 </LinearLayout>

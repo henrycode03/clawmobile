@@ -382,6 +382,54 @@ class TaskViewModel(
         }
     }
 
+    // ── US3: Task Reorder & Workspace Review ─────────────────────
+
+    private val _reorderResult = MutableLiveData<Result<Unit>>()
+    val reorderResult: LiveData<Result<Unit>> = _reorderResult
+
+    private val _reviewResult = MutableLiveData<Result<Unit>>()
+    val reviewResult: LiveData<Result<Unit>> = _reviewResult
+
+    fun reorderTask(taskId: String, newPosition: Int) {
+        val previousList = _allTasks.value.orEmpty()
+        val previousIndex = previousList.indexOfFirst { it.taskId == taskId }
+        val mutable = previousList.toMutableList()
+        if (previousIndex >= 0 && newPosition in mutable.indices) {
+            val item = mutable.removeAt(previousIndex)
+            mutable.add(newPosition, item)
+            _allTasks.value = mutable
+        }
+
+        if (orchestratorClient == null) {
+            _reorderResult.value = Result.failure(Exception("Orchestrator not configured"))
+            return
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            orchestratorClient.updateTaskPosition(taskId, newPosition).onSuccess {
+                _reorderResult.value = Result.success(Unit)
+            }.onFailure { error ->
+                _allTasks.value = previousList
+                _reorderResult.value = Result.failure(error)
+            }
+        }
+    }
+
+    fun submitReview(taskId: String, action: String, note: String? = null) {
+        if (orchestratorClient == null) {
+            _reviewResult.value = Result.failure(Exception("Orchestrator not configured"))
+            return
+        }
+        CoroutineScope(Dispatchers.Main).launch {
+            orchestratorClient.submitWorkspaceReview(taskId, action, note).onSuccess {
+                _reviewResult.value = Result.success(Unit)
+                getTask(taskId)
+            }.onFailure { error ->
+                _reviewResult.value = Result.failure(error)
+            }
+        }
+    }
+
     /**
      * Get task progress for a specific project
      */

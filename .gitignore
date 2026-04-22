@@ -117,3 +117,9 @@ gradle.properties
 # Note: This .gitignore is designed for privacy-focused development
 # It excludes build artifacts, IDE files, and sensitive configuration
 # but keeps your source code, data models, and UI components
+
+# AI Agent
+CLAUDE.md
+.claude/
+.specify/
+clawmobile/specs/

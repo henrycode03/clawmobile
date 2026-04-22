@@ -95,6 +95,13 @@ class SettingsActivity : AppCompatActivity() {
             testOrchestratorConnection()
         }
 
+        // Auto-test connection when URL field loses focus (T021)
+        binding.orchestratorServerUrlInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus && binding.orchestratorServerUrlInput.text?.isNotBlank() == true) {
+                testOrchestratorConnection()
+            }
+        }
+
         binding.saveButton.setOnClickListener {
             val serverUrl   = binding.serverUrlInput.text.toString().trim()
             val gatewayToken = binding.gatewayTokenInput.text.toString().trim()
@@ -239,6 +246,25 @@ class SettingsActivity : AppCompatActivity() {
             else -> R.color.status_failed
         }
         binding.orchestratorTestStatus.setTextColor(ContextCompat.getColor(this, colorRes))
+
+        // Update MD3 connection status indicator (T021)
+        when {
+            neutral -> {
+                binding.connectionStatusText.text = getString(R.string.connection_status_checking)
+                binding.connectionStatusText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                binding.connectionStatusIcon.setImageResource(android.R.drawable.presence_away)
+            }
+            success == true -> {
+                binding.connectionStatusText.text = getString(R.string.connection_status_connected)
+                binding.connectionStatusText.setTextColor(ContextCompat.getColor(this, R.color.status_connected))
+                binding.connectionStatusIcon.setImageResource(android.R.drawable.presence_online)
+            }
+            else -> {
+                binding.connectionStatusText.text = getString(R.string.connection_status_disconnected)
+                binding.connectionStatusText.setTextColor(ContextCompat.getColor(this, R.color.status_failed))
+                binding.connectionStatusIcon.setImageResource(android.R.drawable.presence_offline)
+            }
+        }
     }
 
     /**
