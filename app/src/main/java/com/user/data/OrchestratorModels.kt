@@ -296,7 +296,9 @@ data class MobileTaskDetailResponse(
     @SerializedName("session_name")
     val sessionName: String? = null,
     @SerializedName("has_active_session")
-    val hasActiveSession: Boolean = false
+    val hasActiveSession: Boolean = false,
+    @SerializedName("workspace_status")
+    val workspaceStatus: String? = null
 )
 
 /**

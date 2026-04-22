@@ -5,6 +5,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
@@ -12,12 +13,15 @@ import com.user.data.MobileCheckpointListResponse
 import com.user.data.MobileSessionSummaryResponse
 import com.user.data.RecentActivity
 import com.user.databinding.ActivitySessionDetailBinding
+import com.user.service.LogEntry
 import com.user.service.OrchestratorApiClient
+import com.user.service.WebSocketManager
 import com.user.ui.FailureSummary
 import com.user.ui.OutputHighlighter
 import com.user.ui.TimeFormatUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class SessionDetailActivity : AppCompatActivity() {
@@ -31,12 +35,15 @@ class SessionDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySessionDetailBinding
     private var orchestratorClient: OrchestratorApiClient? = null
+    private var webSocketManager: WebSocketManager? = null
     private var sessionId: String = ""
     private var sessionName: String = "Session"
     private var currentLogFilter: LogFilter = LogFilter.ALL
     private var latestLogs: List<RecentActivity> = emptyList()
+    private var wsLogEntries: MutableList<LogEntry> = mutableListOf()
     private var latestSummary: MobileSessionSummaryResponse? = null
     private var latestCheckpoints: MobileCheckpointListResponse? = null
+    private var isWebSocketOffline = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +59,18 @@ class SessionDetailActivity : AppCompatActivity() {
                 prefs = app.prefsManager,
                 gatewayToken = app.prefsManager.gatewayToken
             )
+            webSocketManager = WebSocketManager(app.prefsManager).also { wsm ->
+                wsm.onReconnecting = { attempt ->
+                    runOnUiThread { showLiveStatus("Reconnecting ($attempt/5)...", R.color.status_pending) }
+                }
+                wsm.onMaxAttemptsReached = {
+                    runOnUiThread {
+                        isWebSocketOffline = true
+                        showLiveStatus("Offline — last 10 logs shown", R.color.status_failed)
+                        loadSessionData(showToast = false)
+                    }
+                }
+            }
         }
 
         setSupportActionBar(binding.toolbar)
@@ -59,8 +78,10 @@ class SessionDetailActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         binding.refreshButton.setOnClickListener { loadSessionData(showToast = true) }
+        binding.pauseButton.setOnClickListener { pauseSession() }
         binding.resumeButton.setOnClickListener { resumeSession() }
         binding.stopButton.setOnClickListener { stopSession() }
+        binding.checkpointsButton.setOnClickListener { openCheckpointsSheet() }
         binding.logFilterAllButton.setOnClickListener { setLogFilter(LogFilter.ALL) }
         binding.logFilterErrorsButton.setOnClickListener { setLogFilter(LogFilter.ERRORS) }
         binding.logFilterOrchestrationButton.setOnClickListener { setLogFilter(LogFilter.PHASES) }
@@ -68,6 +89,51 @@ class SessionDetailActivity : AppCompatActivity() {
         setLogFilter(LogFilter.ALL)
 
         loadSessionData(showToast = false)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        webSocketManager?.let { wsm ->
+            wsLogEntries.clear()
+            isWebSocketOffline = false
+            wsm.connect(sessionId)
+            showLiveStatus("Live", R.color.status_running)
+            lifecycleScope.launch {
+                wsm.logStream.collectLatest { entry ->
+                    wsLogEntries.add(0, entry)
+                    if (wsLogEntries.size > 50) wsLogEntries.removeLastOrNull()
+                    runOnUiThread { renderRecentLogs() }
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        webSocketManager?.disconnect()
+    }
+
+    private fun showLiveStatus(text: String, colorRes: Int) {
+        binding.liveStatusBanner.visibility = View.VISIBLE
+        binding.liveStatusBanner.text = text
+        binding.liveStatusBanner.setTextColor(ContextCompat.getColor(this, colorRes))
+    }
+
+    private fun pauseSession() {
+        val client = orchestratorClient ?: return
+        CoroutineScope(Dispatchers.Main).launch {
+            client.pauseSession(sessionId).onSuccess {
+                Snackbar.make(binding.root, it.message.ifBlank { "Session paused" }, Snackbar.LENGTH_SHORT).show()
+                loadSessionData(showToast = false)
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to pause session", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun openCheckpointsSheet() {
+        val sheet = CheckpointsBottomSheet.newInstance(sessionId)
+        sheet.show(supportFragmentManager, "checkpoints")
     }
 
     private fun loadSessionData(showToast: Boolean) {
@@ -143,12 +209,12 @@ class SessionDetailActivity : AppCompatActivity() {
         binding.sessionFailureCard.visibility =
             if (failureSummary.isNullOrBlank()) View.GONE else View.VISIBLE
 
-        binding.resumeButton.visibility =
-            if ((summary.status.equals("paused", true) || summary.status.equals("stopped", true)) &&
-                (latestCheckpoints?.totalCount ?: 0) > 0
-            ) View.VISIBLE else View.GONE
-        binding.stopButton.visibility =
-            if (summary.status.equals("running", true)) View.VISIBLE else View.GONE
+        val isRunning = summary.status.equals("running", true)
+        val isPausedOrStopped = summary.status.equals("paused", true) || summary.status.equals("stopped", true)
+        val hasCheckpoints = (latestCheckpoints?.totalCount ?: 0) > 0
+        binding.pauseButton.visibility = if (isRunning) View.VISIBLE else View.GONE
+        binding.resumeButton.visibility = if (isPausedOrStopped && hasCheckpoints) View.VISIBLE else View.GONE
+        binding.stopButton.visibility = if (isRunning) View.VISIBLE else View.GONE
     }
 
     private fun bindCheckpoints(checkpoints: MobileCheckpointListResponse) {
@@ -216,9 +282,9 @@ class SessionDetailActivity : AppCompatActivity() {
             else -> binding.recoveryCard.visibility = View.GONE
         }
 
+        binding.pauseButton.visibility = if (status == "running") View.VISIBLE else View.GONE
         binding.resumeButton.visibility = if (resumable) View.VISIBLE else View.GONE
-        binding.stopButton.visibility =
-            if (status == "running") View.VISIBLE else View.GONE
+        binding.stopButton.visibility = if (status == "running") View.VISIBLE else View.GONE
         binding.resumeButton.text = getString(R.string.resume_button_label)
     }
 
@@ -279,8 +345,15 @@ class SessionDetailActivity : AppCompatActivity() {
     }
 
     private fun renderRecentLogs() {
-        val filteredLogs = latestLogs
-            .asReversed()
+        val wsConverted = wsLogEntries.map { entry ->
+            RecentActivity(
+                level = entry.level,
+                message = entry.message,
+                timestamp = entry.timestamp
+            )
+        }
+        val combined = (wsConverted + latestLogs.asReversed()).distinctBy { it.message + it.timestamp }
+        val filteredLogs = combined
             .filter { log ->
                 when (currentLogFilter) {
                     LogFilter.ALL -> true

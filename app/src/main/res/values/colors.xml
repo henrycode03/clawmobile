@@ -54,4 +54,19 @@
     <color name="black">#000000</color>
     <color name="card_text_primary">#E6EDF3</color>
     <color name="card_text_secondary">#9AA4AF</color>
+
+    <!-- MD3 color roles -->
+    <color name="md3_primary">#1F6FEB</color>
+    <color name="md3_on_primary">#FFFFFF</color>
+    <color name="md3_primary_container">#16345C</color>
+    <color name="md3_on_primary_container">#D0E4FF</color>
+    <color name="md3_secondary">#238636</color>
+    <color name="md3_on_secondary">#FFFFFF</color>
+    <color name="md3_tertiary">#F0883E</color>
+    <color name="md3_surface">#161B22</color>
+    <color name="md3_surface_variant">#21262D</color>
+    <color name="md3_error">#F85149</color>
+    <color name="md3_on_error">#FFFFFF</color>
+    <color name="md3_error_container">#4A1F22</color>
+    <color name="md3_outline">#3A4553</color>
 </resources>

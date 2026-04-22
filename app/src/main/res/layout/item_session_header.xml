@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.textview.MaterialTextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sessionHeaderTitle"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="12dp"
-    android:paddingTop="12dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="8dp"
+    android:paddingStart="@dimen/space_lg"
+    android:paddingTop="@dimen/space_md"
+    android:paddingEnd="@dimen/space_lg"
+    android:paddingBottom="@dimen/space_sm"
     android:textColor="@color/text_secondary"
-    android:textSize="12sp"
-    android:textStyle="bold" />
+    android:textSize="11sp"
+    android:letterSpacing="0.1"
+    android:textAllCaps="true" />

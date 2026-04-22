@@ -7,7 +7,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.user.ClawMobileApplication
 import com.user.data.ChatSession
+import com.user.data.MobileSessionActionResponse
 import com.user.repository.ChatRepository
+import com.user.service.LogEntry
+import com.user.service.OrchestratorApiClient
+import com.user.service.WebSocketManager
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -15,6 +20,36 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
 
     private val app = application as ClawMobileApplication
     private val repository = app.repository
+
+    private val orchestratorClient by lazy {
+        OrchestratorApiClient(app.prefsManager, app.prefsManager.gatewayToken)
+    }
+    val webSocketManager by lazy { WebSocketManager(app.prefsManager) }
+    val logStream: SharedFlow<LogEntry> get() = webSocketManager.logStream
+
+    private val _sessionAction = MutableLiveData<Result<MobileSessionActionResponse>>()
+    val sessionAction: LiveData<Result<MobileSessionActionResponse>> = _sessionAction
+
+    fun startSession(projectId: Int, name: String, taskId: Int? = null) {
+        viewModelScope.launch {
+            val result = orchestratorClient.startSession(projectId, name, taskId)
+            _sessionAction.postValue(result)
+        }
+    }
+
+    fun pauseSession(sessionId: String) {
+        viewModelScope.launch {
+            val result = orchestratorClient.pauseSession(sessionId)
+            _sessionAction.postValue(result)
+        }
+    }
+
+    fun resumeSession(sessionId: String) {
+        viewModelScope.launch {
+            val result = orchestratorClient.resumeSession(sessionId)
+            _sessionAction.postValue(result)
+        }
+    }
 
     private val _sessions = MutableLiveData<List<ChatSession>>(emptyList())
     val sessions: LiveData<List<ChatSession>> = _sessions

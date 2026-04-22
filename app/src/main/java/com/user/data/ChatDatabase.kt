@@ -4,10 +4,9 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-/**
- * Updated database with developer tools integration entities
- */
 @Database(
     entities = [
         ChatMessage::class,
@@ -17,9 +16,10 @@ import androidx.room.RoomDatabase
         ProjectFile::class,
         Task::class,
         ApiRequest::class,
-        ApiResponse::class
+        ApiResponse::class,
+        CachedResponse::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class ChatDatabase : RoomDatabase() {
@@ -28,10 +28,21 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun projectContextDao(): ProjectContextDao
     abstract fun taskDao(): TaskDao
     abstract fun apiRequestDao(): ApiRequestDao
+    abstract fun cachedResponseDao(): CachedResponseDao
 
     companion object {
         @Volatile
         private var INSTANCE: ChatDatabase? = null
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `cached_responses` " +
+                        "(`cacheKey` TEXT NOT NULL, `json` TEXT NOT NULL, `cachedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`cacheKey`))"
+                )
+            }
+        }
 
         fun getDatabase(context: Context): ChatDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -40,6 +51,7 @@ abstract class ChatDatabase : RoomDatabase() {
                     ChatDatabase::class.java,
                     "openclaw_database"
                 )
+                    .addMigrations(MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

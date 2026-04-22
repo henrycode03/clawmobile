@@ -1,8 +1,11 @@
 package com.user.ui.tasks
 
 import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.user.data.OrchestTask
@@ -11,6 +14,7 @@ import com.user.databinding.ItemProjectTaskBinding
 class ProjectTaskAdapter(
     private val onTaskClick: (OrchestTask) -> Unit,
     private val onTaskLongPress: ((OrchestTask) -> Unit)? = null,
+    private val onDragStart: ((RecyclerView.ViewHolder) -> Unit)? = null,
 ) : ListAdapter<OrchestTask, ProjectTaskAdapter.ProjectTaskViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProjectTaskViewHolder {
@@ -34,7 +38,17 @@ class ProjectTaskAdapter(
             binding.taskTitle.text = task.title
             binding.taskDescription.text = task.description?.takeIf { it.isNotBlank() } ?: "No description"
             binding.taskDescription.visibility =
-                if (task.description.isNullOrBlank()) android.view.View.GONE else android.view.View.VISIBLE
+                if (task.description.isNullOrBlank()) View.GONE else View.VISIBLE
+
+            val isDraggable = task.status.lowercase() == "pending"
+            binding.dragHandle.visibility = if (isDraggable) View.VISIBLE else View.GONE
+            binding.dragHandle.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    onDragStart?.invoke(this)
+                }
+                false
+            }
+
             binding.taskStatus.text = when (task.status.lowercase()) {
                 "failed" -> "Needs attention"
                 "running", "executing", "in_progress" -> "Running"

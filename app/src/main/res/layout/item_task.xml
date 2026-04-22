@@ -63,15 +63,12 @@
                 android:textSize="12sp"/>
         </LinearLayout>
 
-        <!-- Task Status -->
-        <TextView
-            android:id="@+id/taskStatus"
+        <!-- Task Status Badge -->
+        <com.user.ui.components.StatusBadgeView
+            android:id="@+id/taskStatusBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/status_pending"
-            android:textSize="12sp"
-            android:textStyle="bold"/>
+            android:layout_marginTop="8dp" />
 
         <!-- Action Buttons Row -->
         <LinearLayout
@@ -83,7 +80,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/approveButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:text="APPROVE"
                 android:textSize="12sp"
@@ -94,7 +91,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/rejectButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:text="REJECT"
                 android:textSize="12sp"
@@ -106,7 +103,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/startButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:text="START"
                 android:textSize="12sp"
@@ -117,7 +114,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/viewButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:text="VIEW"
                 android:textSize="12sp"
                 app:cornerRadius="4dp"/>

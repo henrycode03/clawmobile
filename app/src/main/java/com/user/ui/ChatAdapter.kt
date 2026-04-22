@@ -186,14 +186,19 @@ class ChatAdapter : ListAdapter<ChatMessage, ChatAdapter.MessageViewHolder>(Diff
         }
 
         private fun applyBubbleWidths() {
-            val screenWidth = binding.root.resources.displayMetrics.widthPixels
+            val displayMetrics = binding.root.resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val screenHeight = displayMetrics.heightPixels
             val userMaxWidth = (screenWidth * 0.75f).toInt()
             val aiMaxWidth = (screenWidth * 0.85f).toInt()
+            val imageMaxHeight = (screenHeight * 0.38f).toInt()
 
             binding.userMessageText.maxWidth = userMaxWidth
             binding.userMessageImage.maxWidth = userMaxWidth
+            binding.userMessageImage.maxHeight = imageMaxHeight
             binding.messageText.maxWidth = aiMaxWidth
             binding.messageImage.maxWidth = aiMaxWidth
+            binding.messageImage.maxHeight = imageMaxHeight
         }
 
         private fun hasMarkdownImage(text: String): Boolean {

@@ -5,11 +5,17 @@ import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
+import com.user.data.OrchestTask
+import com.user.data.Project
 import com.user.data.ProjectSessionSummary
 import com.user.databinding.ActivityProjectDetailBinding
 import com.user.service.OrchestratorApiClient
@@ -22,10 +28,12 @@ class ProjectDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProjectDetailBinding
     private lateinit var adapter: ProjectTaskAdapter
+    private lateinit var itemTouchHelper: ItemTouchHelper
     private var orchestratorClient: OrchestratorApiClient? = null
     private var projectId: String = ""
     private var projectName: String = ""
     private var latestProjectSessions: List<ProjectSessionSummary> = emptyList()
+    private var currentTasks: MutableList<OrchestTask> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,11 +52,15 @@ class ProjectDetailActivity : AppCompatActivity() {
         }
 
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = projectName
+        supportActionBar?.title = if (projectId.isBlank()) getString(R.string.nav_projects) else projectName
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         setupTaskList()
-        loadProjectData()
+        if (projectId.isBlank()) {
+            promptForProject()
+        } else {
+            loadProjectData()
+        }
     }
 
     private fun setupTaskList() {
@@ -62,23 +74,59 @@ class ProjectDetailActivity : AppCompatActivity() {
             },
             onTaskLongPress = { task ->
                 CommandAssist.showTaskActions(this, task.taskId, task.title)
-            }
+            },
+            onDragStart = { viewHolder -> itemTouchHelper.startDrag(viewHolder) }
         )
 
         binding.projectTasksRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.projectTasksRecyclerView.adapter = adapter
+
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val from = viewHolder.adapterPosition
+                val to = target.adapterPosition
+                val task = currentTasks.getOrNull(from) ?: return false
+                if (task.status.lowercase() != "pending") return false
+                currentTasks.add(to, currentTasks.removeAt(from))
+                adapter.notifyItemMoved(from, to)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                val pos = viewHolder.adapterPosition
+                val task = currentTasks.getOrNull(pos) ?: return
+                val client = orchestratorClient ?: return
+                CoroutineScope(Dispatchers.Main).launch {
+                    client.updateTaskPosition(task.taskId, pos).onFailure {
+                        Snackbar.make(binding.root, "Reorder failed — refreshing", Snackbar.LENGTH_SHORT).show()
+                        loadProjectData()
+                    }
+                }
+            }
+
+            override fun isLongPressDragEnabled() = false
+        }
+        itemTouchHelper = ItemTouchHelper(callback)
+        itemTouchHelper.attachToRecyclerView(binding.projectTasksRecyclerView)
     }
 
     private fun loadProjectData() {
         val client = orchestratorClient ?: run {
-            binding.projectStatusSummary.text = "Orchestrator is not configured on this device."
-            binding.projectTreeSummary.text = "Orchestrator is not configured on this device."
-            binding.filesCard.visibility = View.VISIBLE
-            binding.projectTreeView.visibility = View.GONE
-            binding.sessionsSection.visibility = View.GONE
-            binding.projectTasksEmpty.visibility = View.VISIBLE
+            renderProjectSelectionState(getString(R.string.project_picker_missing_config))
             return
         }
+
+        binding.projectTasksRecyclerView.visibility = View.VISIBLE
+        binding.filesCard.visibility = View.VISIBLE
 
         CoroutineScope(Dispatchers.Main).launch {
             client.getProjectStatus(projectId).onSuccess { status ->
@@ -161,19 +209,93 @@ class ProjectDetailActivity : AppCompatActivity() {
 
             client.getProjectTasks(projectId).onSuccess { tasks ->
                 val sorted = tasks.sortedWith(
-                    compareBy<com.user.data.OrchestTask> {
+                    compareBy<OrchestTask> {
                         it.sequenceIndex ?: Int.MAX_VALUE
                     }.thenBy { it.title.lowercase() }
                 )
+                currentTasks = sorted.toMutableList()
                 adapter.submitList(sorted)
                 if (latestProjectSessions.isEmpty()) {
                     renderPrimaryAction(emptyList(), sorted)
                 }
                 binding.projectTasksEmpty.visibility = if (sorted.isEmpty()) View.VISIBLE else View.GONE
+                updateTaskProgress(sorted)
             }.onFailure { error ->
                 binding.projectTasksEmpty.visibility = View.VISIBLE
                 binding.projectTasksEmpty.text = error.message ?: "Unable to load project tasks."
             }
+        }
+    }
+
+    private fun promptForProject() {
+        val client = orchestratorClient ?: run {
+            renderProjectSelectionState(getString(R.string.project_picker_missing_config))
+            return
+        }
+
+        renderProjectSelectionState(getString(R.string.project_picker_loading))
+        CoroutineScope(Dispatchers.Main).launch {
+            client.getProjects().onSuccess { projects ->
+                when {
+                    projects.isEmpty() -> renderProjectSelectionState(getString(R.string.project_picker_empty))
+                    projects.size == 1 -> selectProject(projects.first())
+                    else -> showProjectPicker(projects)
+                }
+            }.onFailure { error ->
+                renderProjectSelectionState(
+                    error.message ?: getString(R.string.project_picker_error)
+                )
+            }
+        }
+    }
+
+    private fun showProjectPicker(projects: List<Project>) {
+        supportActionBar?.title = getString(R.string.project_picker_title)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.project_picker_title)
+            .setItems(projects.map { it.name }.toTypedArray()) { _, which ->
+                selectProject(projects[which])
+            }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private fun selectProject(project: Project) {
+        projectId = project.getProjectId()
+        projectName = project.name
+        supportActionBar?.title = projectName
+        binding.projectTasksRecyclerView.visibility = View.VISIBLE
+        loadProjectData()
+    }
+
+    private fun renderProjectSelectionState(message: String) {
+        binding.projectStatusSummary.text = message
+        binding.projectDescription.visibility = View.GONE
+        binding.projectPrimaryActionView.visibility = View.GONE
+        binding.sessionsSection.visibility = View.GONE
+        binding.activeSessionsContainer.removeAllViews()
+        binding.taskProgressIndicator.visibility = View.GONE
+        binding.taskProgressText.visibility = View.GONE
+        binding.projectTasksRecyclerView.visibility = View.GONE
+        binding.projectTasksEmpty.visibility = View.VISIBLE
+        binding.projectTasksEmpty.text = message
+        binding.filesCard.visibility = View.VISIBLE
+        binding.projectTreeSummary.text = message
+        binding.projectTreeView.visibility = View.GONE
+    }
+
+    private fun updateTaskProgress(tasks: List<OrchestTask>) {
+        val total = tasks.size
+        val done = tasks.count { it.status.lowercase().let { s -> s == "done" || s == "completed" || s == "success" } }
+        if (total > 0) {
+            binding.taskProgressIndicator.max = total
+            binding.taskProgressIndicator.progress = done
+            binding.taskProgressIndicator.visibility = View.VISIBLE
+            binding.taskProgressText.text = "$done/$total done"
+            binding.taskProgressText.visibility = View.VISIBLE
+        } else {
+            binding.taskProgressIndicator.visibility = View.GONE
+            binding.taskProgressText.visibility = View.GONE
         }
     }
 
@@ -184,7 +306,7 @@ class ProjectDetailActivity : AppCompatActivity() {
 
     private fun renderPrimaryAction(
         sessions: List<ProjectSessionSummary>,
-        tasks: List<com.user.data.OrchestTask> = adapter.currentList
+        tasks: List<OrchestTask> = adapter.currentList
     ) {
         val liveSession = sessions.firstOrNull { it.isActive || it.status.equals("running", true) }
         val resumableSession = sessions.firstOrNull {

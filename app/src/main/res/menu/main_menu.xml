@@ -4,40 +4,34 @@
 
     <item
         android:id="@+id/action_new_chat"
-        android:icon="@android:drawable/ic_input_add"
-        android:title="New Chat"
-        app:showAsAction="ifRoom" />
+        android:icon="@drawable/ic_add"
+        android:title="@string/main_menu_new_chat"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/action_history"
-        android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="History"
-        app:showAsAction="ifRoom" />
+        android:icon="@drawable/ic_history"
+        android:title="@string/main_menu_history"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/action_tasks"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Tasks"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_github"
-        android:title="GitHub"
+        android:title="@string/main_menu_tasks"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_commands"
-        android:title="Commands"
+        android:id="@+id/action_github"
+        android:title="@string/main_menu_github"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_settings"
-        android:title="Settings"
+        android:title="@string/main_menu_settings"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_help"
-        android:title="Help"
+        android:title="@string/main_menu_guide"
         app:showAsAction="never" />
 
 </menu>

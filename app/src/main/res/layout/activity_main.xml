@@ -12,19 +12,22 @@
         android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/toolbar_color"
-        android:elevation="0dp"
+        android:background="@color/background"
         app:elevation="0dp">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
-            style="@style/AppToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="56dp"
-            app:popupTheme="@style/ThemeOverlay.OpenClaw.PopupMenu"
+            android:layout_height="48dp"
+            android:background="@color/background"
+            android:minHeight="48dp"
             app:title="@string/toolbar_title"
             app:titleTextAppearance="@style/TextAppearance.OpenClaw.ToolbarTitle"
+            app:navigationIconTint="@color/text_secondary"
+            app:popupTheme="@style/ThemeOverlay.OpenClaw.PopupMenu"
+            app:contentInsetStartWithNavigation="@dimen/space_lg"
+            app:contentInsetStart="@dimen/space_lg"
+            app:contentInsetEndWithActions="@dimen/space_sm"
             app:titleTextColor="@color/text_primary" />
 
         <LinearLayout
@@ -33,143 +36,277 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingLeft="@dimen/space_lg"
-            android:paddingTop="@dimen/space_sm"
-            android:paddingRight="@dimen/space_lg"
-            android:paddingBottom="@dimen/space_md">
+            android:paddingStart="@dimen/space_lg"
+            android:paddingTop="2dp"
+            android:paddingEnd="@dimen/space_lg"
+            android:paddingBottom="@dimen/space_sm">
 
             <TextView
                 android:id="@+id/statusText"
-                style="@style/TextAppearance.OpenClaw.Status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_status_chip"
-                android:paddingLeft="@dimen/space_md"
-                android:paddingTop="@dimen/space_xs"
-                android:paddingRight="@dimen/space_md"
-                android:paddingBottom="@dimen/space_xs"
-                android:text="@string/chat_status_disconnected"
-                android:textColor="@color/status_disconnected" />
-
-            <View
                 android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <Spinner
-                android:id="@+id/agentSpinner"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:backgroundTint="@color/divider"
-                android:gravity="center_vertical|end"
-                android:popupBackground="@color/ai_bubble"
-                android:dropDownHorizontalOffset="-16dp" />
+                android:layout_marginEnd="@dimen/space_sm"
+                android:layout_weight="1"
+                android:background="@drawable/bg_status_chip"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="2"
+                android:minHeight="28dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="@dimen/space_md"
+                android:paddingVertical="6dp"
+                android:text="@string/chat_status_disconnected"
+                android:textColor="@color/status_disconnected"
+                android:textSize="12sp" />
+
+            <FrameLayout
+                android:id="@+id/agentSelectorContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_agent_selector"
+                android:minWidth="96dp"
+                android:paddingStart="@dimen/space_md"
+                android:paddingEnd="28dp">
+
+                <Spinner
+                    android:id="@+id/agentSpinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:background="@android:color/transparent"
+                    android:dropDownHorizontalOffset="-12dp"
+                    android:gravity="center_vertical|end"
+                    android:paddingEnd="@dimen/space_sm"
+                    android:popupBackground="@color/ai_bubble"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center_vertical|end"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_down"
+                    app:tint="@color/text_secondary" />
+            </FrameLayout>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/contentContainer"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+        <!-- Dashboard summary cards (collapsed when chat is active) -->
+        <HorizontalScrollView
+            android:id="@+id/dashboardCardsScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingHorizontal="@dimen/space_lg"
+            android:paddingTop="@dimen/space_md"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Session count card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSessionCount"
+                    android:layout_width="140dp"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="@dimen/space_md"
+                    app:cardBackgroundColor="@color/md3_surface_variant"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/divider"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="@dimen/space_md"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/sessionCountValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="—"
+                            android:textColor="@color/md3_primary"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Sessions"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Task completion rate card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardTaskCompletion"
+                    android:layout_width="140dp"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="@dimen/space_md"
+                    app:cardBackgroundColor="@color/md3_surface_variant"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/divider"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="@dimen/space_md"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/taskCompletionValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="—"
+                            android:textColor="@color/status_completed"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Task completion"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Pending tasks card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPendingTasks"
+                    android:layout_width="140dp"
+                    android:layout_height="80dp"
+                    app:cardBackgroundColor="@color/md3_surface_variant"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/divider"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="@dimen/space_md"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/pendingTasksValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="—"
+                            android:textColor="@color/status_pending"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pending tasks"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Alerts section -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAlerts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginBottom="@dimen/space_sm"
+            app:cardBackgroundColor="@color/error_surface"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="0dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_md">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Alerts"
+                    android:textColor="@color/status_failed"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="@dimen/space_xs" />
+
+                <TextView
+                    android:id="@+id/alertsText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Offline banner -->
+        <com.user.ui.components.OfflineBannerView
+            android:id="@+id/offlineBanner"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min"
+            android:background="@color/warning_surface"
+            android:orientation="horizontal"
+            android:visibility="gone" />
+
+        <!-- Chat RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingLeft="12dp"
-            android:paddingTop="8dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="8dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/typingIndicator"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
 
         <TextView
             android:id="@+id/typingIndicator"
-            style="@style/TextAppearance.OpenClaw.Status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="16dp"
+            android:layout_marginStart="16dp"
             android:layout_marginBottom="6dp"
-            android:paddingLeft="4dp"
-            android:paddingTop="2dp"
-            android:paddingRight="4dp"
-            android:paddingBottom="2dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp"
             android:text="@string/typing_indicator"
             android:textColor="@color/text_secondary"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/bottomBar"
-            app:layout_constraintStart_toStartOf="parent" />
+            android:textSize="12sp"
+            android:visibility="gone" />
 
+        <!-- Bottom input bar -->
         <LinearLayout
             android:id="@+id/bottomBar"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/background"
             android:orientation="vertical"
-            android:paddingLeft="@dimen/space_md"
+            android:paddingHorizontal="@dimen/space_md"
             android:paddingTop="@dimen/space_sm"
-            android:paddingRight="@dimen/space_md"
-            android:paddingBottom="@dimen/space_md"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <HorizontalScrollView
-                android:id="@+id/commandChipsScroll"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:scrollbars="none"
-                android:visibility="gone">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/commandChipGroup"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:singleLine="true"
-                    app:chipSpacingHorizontal="8dp">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipShowBlockers"
-                        style="@style/Widget.MaterialComponents.Chip.Action"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/chip_show_blockers" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipOpenProject"
-                        style="@style/Widget.MaterialComponents.Chip.Action"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/chip_open_project" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipResumeSession"
-                        style="@style/Widget.MaterialComponents.Chip.Action"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/chip_resume_session" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipDiagnoseTask"
-                        style="@style/Widget.MaterialComponents.Chip.Action"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/chip_diagnose_task" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipStatusSession"
-                        style="@style/Widget.MaterialComponents.Chip.Action"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/chip_status_session" />
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
+            android:paddingBottom="@dimen/space_md">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/imagePreviewLayout"
@@ -192,12 +329,12 @@
 
                 <TextView
                     android:id="@+id/imagePreviewText"
-                    style="@style/TextAppearance.OpenClaw.Status"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="12dp"
+                    android:layout_marginStart="12dp"
                     android:text="@string/image_attached"
                     android:textColor="@color/text_primary"
+                    android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="@id/imagePreviewImage"
                     app:layout_constraintEnd_toStartOf="@id/removePreviewButton"
                     app:layout_constraintStart_toEndOf="@id/imagePreviewImage"
@@ -205,8 +342,8 @@
 
                 <ImageButton
                     android:id="@+id/removePreviewButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/touch_target_min"
+                    android:layout_height="@dimen/touch_target_min"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/remove_preview"
                     android:padding="12dp"
@@ -225,15 +362,13 @@
                 android:gravity="center_vertical"
                 android:minHeight="@dimen/button_height"
                 android:orientation="horizontal"
-                android:paddingLeft="@dimen/space_sm"
-                android:paddingTop="@dimen/space_sm"
-                android:paddingRight="@dimen/space_sm"
-                android:paddingBottom="@dimen/space_sm">
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingVertical="@dimen/space_sm">
 
                 <ImageButton
                     android:id="@+id/attachButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/touch_target_min"
+                    android:layout_height="@dimen/touch_target_min"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/more_options"
                     android:padding="12dp"
@@ -242,8 +377,8 @@
 
                 <ImageButton
                     android:id="@+id/voiceButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/touch_target_min"
+                    android:layout_height="@dimen/touch_target_min"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/voice_input"
                     android:padding="12dp"
@@ -252,7 +387,6 @@
 
                 <AutoCompleteTextView
                     android:id="@+id/messageEditText"
-                    style="@style/TextAppearance.OpenClaw.Message"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -261,32 +395,43 @@
                     android:hint="@string/message_hint_command"
                     android:inputType="textCapSentences|textMultiLine"
                     android:maxLines="4"
-                    android:minHeight="48dp"
-                    android:paddingLeft="4dp"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:paddingStart="4dp"
                     android:paddingTop="10dp"
-                    android:paddingRight="8dp"
+                    android:paddingEnd="8dp"
                     android:paddingBottom="10dp"
                     android:scrollbars="vertical"
                     android:textColor="@color/input_text"
                     android:textColorHint="@color/text_secondary"
+                    android:textSize="14sp"
                     android:dropDownAnchor="@id/inputContainer"
                     android:dropDownVerticalOffset="4dp"
                     android:completionThreshold="1" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sendButton"
-                    style="@style/Widget.OpenClaw.Button.Primary"
+                    style="@style/Widget.Material3.Button"
                     android:layout_width="wrap_content"
-                    android:layout_height="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target_min"
                     android:layout_marginStart="@dimen/space_xs"
-                    android:minWidth="48dp"
+                    android:minWidth="@dimen/touch_target_min"
                     android:text="@string/send_message"
-                    android:paddingLeft="@dimen/space_lg"
-                    android:paddingRight="@dimen/space_lg" />
+                    android:paddingHorizontal="@dimen/space_lg" />
             </LinearLayout>
         </LinearLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Bottom NavigationBar (MD3) -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/navigationBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/md3_surface"
+            android:visibility="gone"
+            app:itemIconTint="@color/text_secondary"
+            app:itemTextColor="@color/text_secondary"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/nav_menu_main" />
+
+    </LinearLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-
-

@@ -19,10 +19,12 @@ import android.text.Editable
 import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -52,7 +54,6 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: ChatViewModel by viewModels()
     private lateinit var prefsManager: PrefsManager
     private var selectedFileUri: Uri? = null
-    private var commandsVisible: Boolean = false
     private val commandTemplates = listOf(
         "show blockers all",
         "diagnose task <task_id>",
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     )
     private val inputHistory = mutableListOf<String>()
     private var historyIndex = -1
+    private var selectedAgentId: String? = null
 
     private val voiceLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -113,7 +115,6 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupObservers()
         setupInputHandlers()
-        setupQuickCommandChips()
         setupCommandSuggestions()
         updateAttachmentUi()
         restoreInputHistory()
@@ -132,6 +133,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.stopService(this)
         }
 
+        applyToolbarIconTints()
         ViewCompat.requestApplyInsets(binding.root)
     }
 
@@ -156,7 +158,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         chatAdapter = ChatAdapter()
         binding.recyclerView.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity).also { it.stackFromEnd = true }
+            layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = chatAdapter
             if (itemDecorationCount == 0) {
                 addItemDecoration(MessageSpacingDecoration(4.dpToPx()))
@@ -233,25 +235,6 @@ class MainActivity : AppCompatActivity() {
         binding.removePreviewButton.setOnClickListener { clearSelectedFile() }
     }
 
-    private fun setupQuickCommandChips() {
-        updateCommandChipVisibility()
-        binding.chipShowBlockers.setOnClickListener {
-            prefillCommand("show blockers all")
-        }
-        binding.chipOpenProject.setOnClickListener {
-            prefillCommand("what should I do next for project <project_id>")
-        }
-        binding.chipResumeSession.setOnClickListener {
-            prefillCommand("find the best session to resume for project <project_id>")
-        }
-        binding.chipDiagnoseTask.setOnClickListener {
-            prefillCommand("diagnose task <task_id>")
-        }
-        binding.chipStatusSession.setOnClickListener {
-            prefillCommand("what failed most recently")
-        }
-    }
-
     private fun setupCommandSuggestions() {
         val adapter = ArrayAdapter(
             this,
@@ -300,10 +283,6 @@ class MainActivity : AppCompatActivity() {
         binding.messageEditText.requestFocus()
         binding.messageEditText.dismissDropDown()
         Toast.makeText(this, getString(R.string.command_prefilled), Toast.LENGTH_SHORT).show()
-        if (commandsVisible) {
-            commandsVisible = false
-            updateCommandChipVisibility()
-        }
     }
 
     private fun handlePrefillIntent(intent: Intent?) {
@@ -335,25 +314,21 @@ class MainActivity : AppCompatActivity() {
         binding.messageEditText.dismissDropDown()
     }
 
-    private fun toggleCommandChips() {
-        commandsVisible = !commandsVisible
-        updateCommandChipVisibility()
-    }
-
-    private fun updateCommandChipVisibility() {
-        binding.commandChipsScroll.visibility = if (commandsVisible) View.VISIBLE else View.GONE
-    }
-
     private fun setupAgentSpinner(agents: List<AgentInfo>) {
         if (agents.isEmpty()) return
 
         val adapter = ArrayAdapter(
             this,
-            android.R.layout.simple_spinner_item,
+            R.layout.item_agent_spinner,
             agents.map { it.name }
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        ).also { it.setDropDownViewResource(R.layout.item_agent_spinner_dropdown) }
 
         binding.agentSpinner.adapter = adapter
+        val selectedIndex = agents.indexOfFirst { it.agentId == selectedAgentId }
+            .takeIf { it >= 0 }
+            ?: 0
+        selectedAgentId = agents[selectedIndex].agentId
+        binding.agentSpinner.setSelection(selectedIndex, false)
         binding.agentSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>?,
@@ -361,7 +336,11 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                viewModel.switchAgent(agents[position].agentId)
+                val agentId = agents.getOrNull(position)?.agentId ?: return
+                if (agentId == selectedAgentId) return
+
+                selectedAgentId = agentId
+                viewModel.switchAgent(agentId)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -596,6 +575,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        applyToolbarIconTints(menu)
         return true
     }
 
@@ -606,7 +586,7 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_history -> {
-                startActivity(Intent(this, SessionsActivity::class.java))
+                startActivity(Intent(this, ChatHistoryActivity::class.java))
                 true
             }
             R.id.action_tasks -> {
@@ -615,10 +595,6 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_github -> {
                 startActivity(Intent(this, GitHubActivity::class.java))
-                true
-            }
-            R.id.action_commands -> {
-                toggleCommandChips()
                 true
             }
             R.id.action_settings -> {
@@ -650,6 +626,31 @@ class MainActivity : AppCompatActivity() {
             else -> R.color.status_disconnected
         }
         return ContextCompat.getColor(this, colorRes)
+    }
+
+    private fun applyToolbarIconTints(menu: Menu? = null) {
+        val iconColor = ContextCompat.getColor(this, R.color.text_secondary)
+
+        binding.toolbar.navigationIcon?.mutate()?.let { navigationIcon ->
+            DrawableCompat.setTint(navigationIcon, iconColor)
+            binding.toolbar.navigationIcon = navigationIcon
+        }
+
+        menu?.let {
+            for (index in 0 until it.size()) {
+                val menuItem = it.getItem(index)
+                menuItem.icon?.mutate()?.let { icon ->
+                    DrawableCompat.setTint(icon, iconColor)
+                    menuItem.icon = icon
+                }
+            }
+        }
+
+        binding.toolbar.overflowIcon = AppCompatResources.getDrawable(this, R.drawable.ic_more_vert)
+            ?.mutate()
+            ?.also { overflowIcon ->
+                DrawableCompat.setTint(overflowIcon, iconColor)
+            }
     }
 
     private fun Int.dpToPx(): Int =

@@ -2,6 +2,7 @@
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/taskListScrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
@@ -20,6 +21,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/toolbar_color"
+            app:popupTheme="@style/ThemeOverlay.OpenClaw.PopupMenu"
             app:titleTextColor="@color/text_primary"
             app:navigationIcon="@drawable/ic_back"/>
 
@@ -43,6 +45,100 @@
             android:paddingBottom="@dimen/space_md"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_secondary" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                app:chipSpacingHorizontal="@dimen/space_sm">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBrowseSessions"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="false"
+                    android:text="@string/task_hub_jump_sessions" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBrowseProjects"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="false"
+                    android:text="@string/task_hub_jump_projects" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBrowseTasks"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="false"
+                    android:text="@string/task_hub_jump_tasks" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+
+        <!-- Status Filter Chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/taskStatusChipGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAll"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/status_chip_height"
+                    android:text="All"
+                    android:checked="true" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipPending"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/status_chip_height"
+                    android:text="Pending" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipRunning"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/status_chip_height"
+                    android:text="Running" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipDone"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/status_chip_height"
+                    android:text="Done" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFailed"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/status_chip_height"
+                    android:text="Failed" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
 
         <!-- Dashboard Stats Grid -->
         <androidx.cardview.widget.CardView
@@ -232,13 +328,41 @@
                 android:orientation="vertical"
                 android:padding="@dimen/space_lg">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Overview"
-                    android:textColor="@color/card_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold"/>
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/task_hub_sessions_title"
+                        android:textColor="@color/card_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/openSessionsButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp"
+                        android:text="@string/task_hub_sessions_all" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:text="@string/task_hub_sessions_subtitle"
+                    android:textColor="@color/card_text_secondary"
+                    android:textSize="13sp"/>
 
                 <TextView
                     android:id="@+id/executionSummaryView"
@@ -369,10 +493,18 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Project Progress"
+                    android:text="@string/task_hub_projects_title"
                     android:textColor="@color/card_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:text="@string/task_hub_projects_subtitle"
+                    android:textColor="@color/card_text_secondary"
+                    android:textSize="13sp"/>
 
                 <!-- Project List -->
                 <androidx.recyclerview.widget.RecyclerView
@@ -412,6 +544,32 @@
             android:textSize="13sp"
             android:visibility="gone"/>
 
+        <LinearLayout
+            android:id="@+id/tasksSectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_xl"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/task_hub_tasks_title"
+                android:textColor="@color/card_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:text="@string/task_hub_tasks_subtitle"
+                android:textColor="@color/card_text_secondary"
+                android:textSize="13sp"/>
+        </LinearLayout>
+
         <!-- Empty State -->
         <TextView
             android:id="@+id/emptyView"
@@ -427,6 +585,19 @@
             android:textColor="@color/text_secondary"
             android:textSize="16sp"
             android:visibility="gone"/>
+
+        <!-- Sequence indicator -->
+        <TextView
+            android:id="@+id/sequenceIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_sm"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:gravity="end"
+            android:visibility="gone" />
 
         <!-- Task List RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView

@@ -128,11 +128,33 @@
                 android:orientation="vertical"
                 android:padding="@dimen/space_lg">
 
-                <TextView
-                    style="@style/TextAppearance.OpenClaw.SectionTitle"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Tasks" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        style="@style/TextAppearance.OpenClaw.SectionTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Tasks" />
+
+                    <TextView
+                        android:id="@+id/taskProgressText"
+                        style="@style/TextAppearance.OpenClaw.SectionBody"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/taskProgressIndicator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/projectTasksEmpty"

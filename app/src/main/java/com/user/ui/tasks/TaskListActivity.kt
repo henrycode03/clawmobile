@@ -27,6 +27,8 @@ import com.user.data.TaskStatus
 import com.user.databinding.ActivityTaskListBinding
 import com.user.service.OrchestratorApiClient
 import com.user.ui.CommandAssist
+import com.user.ui.activities.SessionsActivity
+import com.user.ui.permissions.PermissionsActivity
 import com.user.ui.tasks.ProjectProgressAdapter
 import com.user.viewmodel.TaskViewModel
 import com.user.viewmodel.TaskViewModelFactory
@@ -42,7 +44,9 @@ class TaskListActivity : AppCompatActivity() {
     private enum class TaskFilterMode {
         ALL,
         PENDING,
-        ACTIVE
+        ACTIVE,
+        DONE,
+        FAILED
     }
 
     private data class BlockerItem(
@@ -104,20 +108,21 @@ class TaskListActivity : AppCompatActivity() {
         binding.searchInput.addTextChangedListener {
             applyVisibleFilters()
         }
+        binding.chipBrowseSessions.setOnClickListener { scrollToSection(binding.executionCard) }
+        binding.chipBrowseProjects.setOnClickListener { scrollToSection(binding.projectsCard) }
+        binding.chipBrowseTasks.setOnClickListener { scrollToSection(binding.tasksSectionHeader) }
         binding.latestFailureView.setOnClickListener { openLatestFailure() }
         binding.runningSessionView.setOnClickListener { openRunningSession() }
         binding.resumableSessionView.setOnClickListener { openResumableSession() }
+        binding.openSessionsButton.setOnClickListener {
+            startActivity(Intent(this, SessionsActivity::class.java))
+        }
 
+        setupStatusChips()
         setupRecyclerView()
         setupProjectRecyclerView()
         setupViewModel()
         setupObservers()
-
-        if ((intent.getStringExtra("session_id") ?: "").isBlank()) {
-            binding.recyclerView.visibility = View.GONE
-        } else {
-            binding.recyclerView.visibility = View.VISIBLE
-        }
     }
 
     override fun onResume() {
@@ -157,6 +162,19 @@ class TaskListActivity : AppCompatActivity() {
         )
         viewModel = ViewModelProvider(this, factory)[TaskViewModel::class.java]
         renderDiagnosticsCard()
+    }
+
+    private fun setupStatusChips() {
+        binding.taskStatusChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            currentTaskFilterMode = when (checkedIds.firstOrNull()) {
+                R.id.chipPending -> TaskFilterMode.PENDING
+                R.id.chipRunning -> TaskFilterMode.ACTIVE
+                R.id.chipDone -> TaskFilterMode.DONE
+                R.id.chipFailed -> TaskFilterMode.FAILED
+                else -> TaskFilterMode.ALL
+            }
+            applyVisibleFilters()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -729,7 +747,25 @@ class TaskListActivity : AppCompatActivity() {
     }
 
     private fun updateEmptyState(tasks: List<Task>) {
-        binding.emptyView.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+        val hasTasks = tasks.isNotEmpty()
+        binding.emptyView.visibility = if (hasTasks) View.GONE else View.VISIBLE
+        binding.recyclerView.visibility = if (hasTasks) View.VISIBLE else View.GONE
+    }
+
+    private fun scrollToSection(target: View) {
+        val topInset = resources.getDimensionPixelSize(R.dimen.space_md)
+        binding.taskListScrollView.post {
+            binding.taskListScrollView.smoothScrollTo(0, (target.top - topInset).coerceAtLeast(0))
+        }
+    }
+
+    private fun updateSequenceIndicator(visible: Int, total: Int) {
+        if (total > 0 && binding.recyclerView.visibility == View.VISIBLE) {
+            binding.sequenceIndicator.text = "$visible of $total"
+            binding.sequenceIndicator.visibility = View.VISIBLE
+        } else {
+            binding.sequenceIndicator.visibility = View.GONE
+        }
     }
 
     private fun applyVisibleFilters() {
@@ -740,6 +776,10 @@ class TaskListActivity : AppCompatActivity() {
             TaskFilterMode.PENDING -> latestTasks.filter { it.status == TaskStatus.PENDING }
             TaskFilterMode.ACTIVE -> latestTasks.filter {
                 it.status == TaskStatus.IN_PROGRESS || it.status == TaskStatus.APPROVED
+            }
+            TaskFilterMode.DONE -> latestTasks.filter { it.status == TaskStatus.COMPLETED }
+            TaskFilterMode.FAILED -> latestTasks.filter {
+                it.status == TaskStatus.FAILED || it.status == TaskStatus.REJECTED || it.status == TaskStatus.TIMEOUT
             }
         }
 
@@ -754,6 +794,7 @@ class TaskListActivity : AppCompatActivity() {
         }
         submitTasks(visibleTasks)
         updateEmptyState(visibleTasks)
+        updateSequenceIndicator(visibleTasks.size, latestTasks.size)
 
         val visibleProjects = if (query.isBlank()) {
             latestProjects
@@ -827,19 +868,8 @@ class TaskListActivity : AppCompatActivity() {
                 }
                 true
             }
-            R.id.action_filter_pending -> {
-                currentTaskFilterMode = TaskFilterMode.PENDING
-                applyVisibleFilters()
-                true
-            }
-            R.id.action_filter_active -> {
-                currentTaskFilterMode = TaskFilterMode.ACTIVE
-                applyVisibleFilters()
-                true
-            }
-            R.id.action_filter_all -> {
-                currentTaskFilterMode = TaskFilterMode.ALL
-                applyVisibleFilters()
+            R.id.action_permissions -> {
+                startActivity(Intent(this, PermissionsActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)

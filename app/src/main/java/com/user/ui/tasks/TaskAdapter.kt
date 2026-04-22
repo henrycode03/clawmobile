@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import com.user.R
 import com.user.data.Task
 import com.user.data.TaskStatus
+import com.user.ui.components.StatusBadgeView
 
 /**
  * Adapter for displaying tasks in a RecyclerView
@@ -35,7 +36,7 @@ class TaskAdapter(
     inner class TaskViewHolder(itemView: View) : ViewHolder(itemView) {
         private val titleText: TextView = itemView.findViewById(R.id.taskTitle)
         private val descriptionText: TextView = itemView.findViewById(R.id.taskDescription)
-        private val statusText: TextView = itemView.findViewById(R.id.taskStatus)
+        private val statusBadge: StatusBadgeView = itemView.findViewById(R.id.taskStatusBadge)
         private val priorityText: TextView = itemView.findViewById(R.id.taskPriority)
         private val timeText: TextView = itemView.findViewById(R.id.taskTime)
 
@@ -48,12 +49,10 @@ class TaskAdapter(
             titleText.text = task.title
             descriptionText.text = task.description.take(100) +
                     if (task.description.length > 100) "..." else ""
-            statusText.text = task.status.name
-            statusText.setBackgroundResource(getStatusDrawable(task.status))
+            statusBadge.setStatus(task.status.name.lowercase())
             priorityText.text = "Priority: ${task.priority}"
             timeText.text = formatTime(task.createdAt)
 
-            // Show/hide action buttons based on task status
             approveButton?.visibility = if (task.status == TaskStatus.PENDING) View.VISIBLE else View.GONE
             rejectButton?.visibility = if (task.status == TaskStatus.PENDING) View.VISIBLE else View.GONE
             startButton?.visibility = if (task.status == TaskStatus.APPROVED) View.VISIBLE else View.GONE
@@ -67,18 +66,6 @@ class TaskAdapter(
             approveButton?.setOnClickListener { onApproveClick(task) }
             rejectButton?.setOnClickListener { onRejectClick(task) }
             startButton?.setOnClickListener { onStartClick(task) }
-        }
-
-        private fun getStatusDrawable(status: TaskStatus): Int {
-            return when (status) {
-                TaskStatus.PENDING -> R.drawable.badge_pending
-                TaskStatus.APPROVED -> R.drawable.badge_approved
-                TaskStatus.IN_PROGRESS -> R.drawable.badge_running
-                TaskStatus.COMPLETED -> R.drawable.badge_completed
-                TaskStatus.FAILED -> R.drawable.badge_failed
-                TaskStatus.REJECTED -> R.drawable.badge_rejected
-                TaskStatus.TIMEOUT -> R.drawable.badge_timeout
-            }
         }
 
         private fun formatTime(timestamp: Long): String {

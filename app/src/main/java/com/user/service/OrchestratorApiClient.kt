@@ -4,6 +4,8 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.user.data.DashboardResponse
+import com.user.data.PermissionActionResponse
+import com.user.data.PermissionListResponse
 import com.user.data.DashboardSummary
 import com.user.data.RecentActivity
 import com.user.data.OrchestTask
@@ -24,6 +26,8 @@ import com.user.data.ProjectStatusResponse
 import com.user.data.ProjectTasksResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
@@ -52,9 +56,9 @@ class OrchestratorApiClient(
     }
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
         // Add network interceptor to log all requests/responses for debugging
         .addNetworkInterceptor { chain ->
             val request = chain.request()
@@ -595,6 +599,184 @@ class OrchestratorApiClient(
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching filtered tasks for project $projectId: ${e.message}")
             buildFailure("Failed to load filtered tasks for project $projectId.", e)
+        }
+    }
+
+    // ── US2: Session Start / Pause ────────────────────────────────
+
+    suspend fun startSession(projectId: Int, name: String, taskId: Int? = null): Result<MobileSessionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions")
+            val jsonBody = if (taskId != null) {
+                "{\"project_id\":$projectId,\"name\":\"${name.replace("\"", "\\\"")}\",\"task_id\":$taskId}"
+            } else {
+                "{\"project_id\":$projectId,\"name\":\"${name.replace("\"", "\\\"")}\"}"
+            }
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Start session failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, MobileSessionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to start session.", e)
+        }
+    }
+
+    suspend fun pauseSession(sessionId: String): Result<MobileSessionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/pause")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Pause session failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, MobileSessionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to pause session $sessionId.", e)
+        }
+    }
+
+    // ── US3: Task Position / Workspace Review ─────────────────────
+
+    suspend fun updateTaskPosition(taskId: String, planPosition: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("tasks/${taskId}/position")
+            val jsonBody = "{\"plan_position\":$planPosition}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .patch(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Update position failed (${response.code}).")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to update task position.", e)
+        }
+    }
+
+    suspend fun submitWorkspaceReview(taskId: String, action: String, note: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("tasks/${taskId}/review")
+            val noteJson = if (note != null) ",\"note\":\"${note.replace("\"", "\\\"")}\"" else ""
+            val jsonBody = "{\"action\":\"$action\"$noteJson}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Submit review failed (${response.code}).")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to submit workspace review.", e)
+        }
+    }
+
+    // ── US4: Checkpoint Load / Delete ─────────────────────────────
+
+    suspend fun loadCheckpoint(sessionId: String, checkpointName: String): Result<MobileSessionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/checkpoint/load")
+            val jsonBody = "{\"checkpoint_name\":\"${checkpointName.replace("\"", "\\\"")}\"}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Load checkpoint failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, MobileSessionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to load checkpoint.", e)
+        }
+    }
+
+    suspend fun deleteCheckpoint(sessionId: String, checkpointName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("sessions/${sessionId}/checkpoints/${checkpointName}")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .delete()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Delete checkpoint failed (${response.code}).")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to delete checkpoint.", e)
+        }
+    }
+
+    // ── US5: Permissions ──────────────────────────────────────────
+
+    suspend fun listPermissions(status: String? = null): Result<PermissionListResponse> = withContext(Dispatchers.IO) {
+        try {
+            val path = if (!status.isNullOrBlank()) "permissions?status=$status" else "permissions"
+            val url = buildMobileUrl(path)
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("List permissions failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, PermissionListResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to list permissions.", e)
+        }
+    }
+
+    suspend fun approvePermission(requestId: Int, autoApproveSame: Boolean = false): Result<PermissionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("permissions/${requestId}/approve")
+            val jsonBody = "{\"auto_approve_same\":$autoApproveSame}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Approve permission failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, PermissionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to approve permission.", e)
+        }
+    }
+
+    suspend fun rejectPermission(requestId: Int): Result<PermissionActionResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildMobileUrl("permissions/${requestId}/reject")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Reject permission failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, PermissionActionResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to reject permission.", e)
         }
     }
 

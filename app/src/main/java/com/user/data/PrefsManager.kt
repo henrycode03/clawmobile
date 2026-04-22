@@ -134,4 +134,10 @@ class PrefsManager(context: Context) {
             .takeLast(MAX_RECENT_INPUTS)
         prefs.edit().putString(KEY_RECENT_INPUT_HISTORY, trimmed.joinToString("\n")).apply()
     }
+
+    // ── Permission Polling (US5) ──────────────────────────────
+    var lastKnownPermissionIds: Set<Int>
+        get() = (prefs.getStringSet("last_known_permission_ids", emptySet()) ?: emptySet())
+            .mapNotNull { it.toIntOrNull() }.toSet()
+        set(value) = prefs.edit().putStringSet("last_known_permission_ids", value.map { it.toString() }.toSet()).apply()
 }

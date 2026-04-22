@@ -20,7 +20,16 @@ class ChatRepository(
         chatDao.getMessagesBySession(sessionId)
 
     suspend fun insertMessage(message: ChatMessage): Long =
-        withContext(Dispatchers.IO) { chatDao.insertMessage(message) }
+        withContext(Dispatchers.IO) {
+            val insertedId = chatDao.insertMessage(message)
+            chatDao.updateSessionTime(message.sessionId, message.timestamp)
+            if (message.isUser) {
+                buildSessionTitle(message.message)?.let { title ->
+                    chatDao.updateSessionTitle(message.sessionId, title)
+                }
+            }
+            insertedId
+        }
 
     // ── Chat Sessions ────────────────────────────────────────
     fun getSessions(): Flow<List<ChatSession>> =
@@ -109,5 +118,19 @@ class ChatRepository(
 
     suspend fun getTaskStats(sessionId: String): TaskStats =
         withContext(Dispatchers.IO) { taskDao.getTaskStats(sessionId) }
+
+    private fun buildSessionTitle(message: String): String? {
+        val firstLine = message
+            .lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            ?: return null
+
+        return firstLine
+            .removePrefix("--- ")
+            .take(48)
+            .trim()
+            .takeIf { it.isNotEmpty() }
+    }
 
 }

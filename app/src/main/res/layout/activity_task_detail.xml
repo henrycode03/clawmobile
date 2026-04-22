@@ -240,6 +240,90 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Workspace Review card (US3) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/workspaceReviewCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/md3_surface_variant"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_lg">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/workspace_review_title"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="@dimen/space_md" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/reviewNoteLayout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/workspace_review_note_hint"
+                    android:layout_marginBottom="@dimen/space_md">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/reviewNoteInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:maxLines="3" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/promoteButton"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/touch_target_min"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="@string/workspace_review_promote"
+                        android:backgroundTint="@color/md3_secondary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/requestChangesButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/touch_target_min"
+                        android:layout_weight="1"
+                        android:text="@string/workspace_review_request_changes" />
+
+                </LinearLayout>
+
+                <!-- Read-only resolved badge -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/workspaceResolvedBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:visibility="gone"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/md3_secondary" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:id="@+id/actionButtons"
             android:layout_width="match_parent"
