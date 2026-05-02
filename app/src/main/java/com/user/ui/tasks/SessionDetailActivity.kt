@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
+import com.user.data.InterventionRequest
 import com.user.data.MobileCheckpointListResponse
 import com.user.data.MobileSessionSummaryResponse
 import com.user.data.RecentActivity
@@ -43,6 +44,7 @@ class SessionDetailActivity : AppCompatActivity() {
     private var wsLogEntries: MutableList<LogEntry> = mutableListOf()
     private var latestSummary: MobileSessionSummaryResponse? = null
     private var latestCheckpoints: MobileCheckpointListResponse? = null
+    private var currentIntervention: InterventionRequest? = null
     private var isWebSocketOffline = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +89,10 @@ class SessionDetailActivity : AppCompatActivity() {
         binding.logFilterOrchestrationButton.setOnClickListener { setLogFilter(LogFilter.PHASES) }
         binding.logFilterCheckpointButton.setOnClickListener { setLogFilter(LogFilter.CHECKPOINTS) }
         setLogFilter(LogFilter.ALL)
+
+        binding.interventionApproveButton.setOnClickListener { handleApproveIntervention() }
+        binding.interventionDenyButton.setOnClickListener { handleDenyIntervention() }
+        binding.interventionSubmitButton.setOnClickListener { handleSubmitGuidance() }
 
         loadSessionData(showToast = false)
     }
@@ -164,14 +170,26 @@ class SessionDetailActivity : AppCompatActivity() {
                 latestCheckpoints = null
                 renderRecoveryCard()
             }
+
+            client.listInterventions(sessionId, status = "pending").onSuccess { response ->
+                currentIntervention = response.interventions.firstOrNull()
+                bindIntervention(currentIntervention)
+            }.onFailure {
+                currentIntervention = null
+                bindIntervention(null)
+            }
         }
     }
 
     private fun bindSummary(summary: MobileSessionSummaryResponse) {
-        binding.sessionStatusBadge.text = summary.status.uppercase()
+        val statusLabel = when (summary.status.lowercase()) {
+            "waiting_for_human" -> "WAITING"
+            else -> summary.status.uppercase()
+        }
+        binding.sessionStatusBadge.text = statusLabel
         val badgeRes = when (summary.status.lowercase()) {
             "running" -> R.drawable.badge_running
-            "paused" -> R.drawable.badge_pending
+            "paused", "waiting_for_human" -> R.drawable.badge_pending
             "stopped" -> R.drawable.badge_timeout
             "completed" -> R.drawable.badge_completed
             else -> R.drawable.badge_pending
@@ -210,18 +228,12 @@ class SessionDetailActivity : AppCompatActivity() {
             if (failureSummary.isNullOrBlank()) View.GONE else View.VISIBLE
 
         val isRunning = summary.status.equals("running", true)
-        val isPausedOrStopped = summary.status.equals("paused", true) || summary.status.equals("stopped", true)
-        val hasCheckpoints = (latestCheckpoints?.totalCount ?: 0) > 0
         binding.pauseButton.visibility = if (isRunning) View.VISIBLE else View.GONE
-        binding.resumeButton.visibility = if (isPausedOrStopped && hasCheckpoints) View.VISIBLE else View.GONE
         binding.stopButton.visibility = if (isRunning) View.VISIBLE else View.GONE
     }
 
     private fun bindCheckpoints(checkpoints: MobileCheckpointListResponse) {
-        val bestCheckpoint = checkpoints.checkpoints.firstOrNull { checkpoint ->
-            checkpoint.name.contains("latest", ignoreCase = true) ||
-                    checkpoint.name.contains("stopped", ignoreCase = true)
-        } ?: checkpoints.checkpoints.lastOrNull()
+        val bestCheckpoint = checkpoints.checkpoints.lastOrNull()
 
         binding.checkpointSummaryView.text = if (checkpoints.totalCount > 0) {
             val bestLabel = bestCheckpoint?.let { checkpoint ->
@@ -257,7 +269,7 @@ class SessionDetailActivity : AppCompatActivity() {
         }
         val checkpointCount = latestCheckpoints?.totalCount ?: 0
         val status = summary.status.lowercase()
-        val resumable = checkpointCount > 0 && (status == "paused" || status == "stopped")
+        val resumable = status == "paused" || (status == "stopped" && checkpointCount > 0)
 
         when {
             resumable -> {
@@ -377,7 +389,7 @@ class SessionDetailActivity : AppCompatActivity() {
                     }
                 }
             }
-            .take(8)
+            .take(20)
 
         val rendered = if (filteredLogs.isEmpty()) {
             when (currentLogFilter) {
@@ -440,6 +452,67 @@ class SessionDetailActivity : AppCompatActivity() {
             log.level.equals("ERROR", true) || message.contains("failed") || message.contains("error") || message.contains("timeout") ->
                 "Errors"
             else -> "Recent Activity"
+        }
+    }
+
+    private fun bindIntervention(intervention: InterventionRequest?) {
+        if (intervention == null) {
+            binding.interventionCard.visibility = View.GONE
+            return
+        }
+        binding.interventionCard.visibility = View.VISIBLE
+        binding.interventionTypeBadge.text = intervention.interventionType.uppercase()
+        binding.interventionPromptView.text = intervention.prompt
+
+        val isApproval = intervention.interventionType.equals("approval", ignoreCase = true)
+        binding.interventionApproveButton.visibility = if (isApproval) View.VISIBLE else View.GONE
+        binding.interventionDenyButton.visibility = if (isApproval) View.VISIBLE else View.GONE
+        binding.interventionReplyInput.visibility = if (!isApproval) View.VISIBLE else View.GONE
+        binding.interventionSubmitButton.visibility = if (!isApproval) View.VISIBLE else View.GONE
+    }
+
+    private fun handleApproveIntervention() {
+        val client = orchestratorClient ?: return
+        val intervention = currentIntervention ?: return
+        CoroutineScope(Dispatchers.Main).launch {
+            client.approveIntervention(sessionId, intervention.id).onSuccess {
+                Snackbar.make(binding.root, "Approved — session resuming", Snackbar.LENGTH_SHORT).show()
+                loadSessionData(showToast = false)
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to approve", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun handleDenyIntervention() {
+        val client = orchestratorClient ?: return
+        val intervention = currentIntervention ?: return
+        CoroutineScope(Dispatchers.Main).launch {
+            client.denyIntervention(sessionId, intervention.id).onSuccess {
+                Snackbar.make(binding.root, "Denied — session resuming with denial context", Snackbar.LENGTH_SHORT).show()
+                loadSessionData(showToast = false)
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to deny", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun handleSubmitGuidance() {
+        val client = orchestratorClient ?: return
+        val intervention = currentIntervention ?: return
+        val reply = binding.interventionReplyInput.text?.toString()?.trim() ?: ""
+        if (reply.isBlank()) {
+            Snackbar.make(binding.root, "Enter guidance before submitting", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        CoroutineScope(Dispatchers.Main).launch {
+            client.replyToIntervention(sessionId, intervention.id, reply).onSuccess {
+                binding.interventionReplyInput.text?.clear()
+                Snackbar.make(binding.root, "Guidance sent — session resuming", Snackbar.LENGTH_SHORT).show()
+                loadSessionData(showToast = false)
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to send guidance", Snackbar.LENGTH_LONG).show()
+            }
         }
     }
 

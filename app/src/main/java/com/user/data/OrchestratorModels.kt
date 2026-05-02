@@ -301,6 +301,28 @@ data class MobileTaskDetailResponse(
     val workspaceStatus: String? = null
 )
 
+data class InterventionRequest(
+    val id: Int = 0,
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    @SerializedName("intervention_type")
+    val interventionType: String = "guidance",
+    val prompt: String = "",
+    val status: String = "pending",
+    val reply: String? = null,
+    @SerializedName("initiated_by")
+    val initiatedBy: String = "ai",
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+    @SerializedName("resolved_at")
+    val resolvedAt: String? = null
+)
+
+data class InterventionListResponse(
+    val interventions: List<InterventionRequest> = emptyList(),
+    val total: Int = 0
+)
+
 /**
  * Task statistics for project status response
  */

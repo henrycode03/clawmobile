@@ -8,6 +8,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.user.data.ChatDatabase
 import com.user.data.PrefsManager
 import com.user.repository.ChatRepository
+import com.user.service.InterventionPollService
 import com.user.service.PermissionPollService
 import java.util.concurrent.TimeUnit
 
@@ -17,6 +18,18 @@ class ClawMobileApplication : Application() {
         super.onCreate()
         PDFBoxResourceLoader.init(this)
         schedulePermissionPolling()
+        scheduleInterventionPolling()
+    }
+
+    private fun scheduleInterventionPolling() {
+        val request = PeriodicWorkRequestBuilder<InterventionPollService>(
+            15, TimeUnit.MINUTES
+        ).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            InterventionPollService.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
     }
 
     private fun schedulePermissionPolling() {

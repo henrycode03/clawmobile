@@ -135,6 +135,12 @@ class PrefsManager(context: Context) {
         prefs.edit().putString(KEY_RECENT_INPUT_HISTORY, trimmed.joinToString("\n")).apply()
     }
 
+    // ── Intervention Polling ──────────────────────────────────
+    var lastKnownInterventionSessionIds: Set<Int>
+        get() = (prefs.getStringSet("last_known_intervention_session_ids", emptySet()) ?: emptySet())
+            .mapNotNull { it.toIntOrNull() }.toSet()
+        set(value) = prefs.edit().putStringSet("last_known_intervention_session_ids", value.map { it.toString() }.toSet()).apply()
+
     // ── Permission Polling (US5) ──────────────────────────────
     var lastKnownPermissionIds: Set<Int>
         get() = (prefs.getStringSet("last_known_permission_ids", emptySet()) ?: emptySet())

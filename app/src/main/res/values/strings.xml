@@ -243,6 +243,8 @@
     <string name="permissions_notification_title">Approval Request</string>
     <string name="permissions_notification_channel">Approval Requests</string>
     <string name="permissions_badge_content_desc">%d pending approvals</string>
+    <string name="intervention_notification_title">Agent Needs Your Input</string>
+    <string name="intervention_notification_channel">Agent Interventions</string>
 
     <!-- Checkpoint bottom sheet labels -->
     <string name="checkpoints_title">Checkpoints</string>

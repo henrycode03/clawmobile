@@ -17,6 +17,8 @@ import com.user.data.MobileSessionsListResponse
 import com.user.data.MobileTaskDetailResponse
 import com.user.data.MobileTaskActionResponse
 import com.user.data.MobileSessionActionResponse
+import com.user.data.InterventionListResponse
+import com.user.data.InterventionRequest
 import com.user.data.MobileSessionSummaryResponse
 import com.user.data.OrchestratorApiResponse
 import com.user.data.PrefsManager
@@ -96,6 +98,11 @@ class OrchestratorApiClient(
     private fun buildMobileUrl(path: String): String {
         val normalizedPath = path.trimStart('/')
         return "${getBaseUrl()}/api/v1/mobile/$normalizedPath"
+    }
+
+    private fun buildApiUrl(path: String): String {
+        val normalizedPath = path.trimStart('/')
+        return "${getBaseUrl()}/api/v1/$normalizedPath"
     }
 
     private fun <T> buildFailure(message: String, exception: Exception? = null): Result<T> {
@@ -777,6 +784,85 @@ class OrchestratorApiClient(
             }
         } catch (e: Exception) {
             buildFailure("Failed to reject permission.", e)
+        }
+    }
+
+    // ── Interventions ─────────────────────────────────────────────
+
+    suspend fun listInterventions(sessionId: String, status: String? = null): Result<InterventionListResponse> = withContext(Dispatchers.IO) {
+        try {
+            val path = buildString {
+                append("sessions/$sessionId/interventions")
+                if (!status.isNullOrBlank()) append("?status=$status")
+            }
+            val request = Request.Builder()
+                .url(buildApiUrl(path))
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("List interventions failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, InterventionListResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to list interventions for session $sessionId.", e)
+        }
+    }
+
+    suspend fun replyToIntervention(sessionId: String, interventionId: Int, reply: String): Result<InterventionRequest> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/interventions/$interventionId/reply")
+            val jsonBody = "{\"reply\":\"${reply.replace("\"", "\\\"")}\"}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Reply to intervention failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, InterventionRequest::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to reply to intervention $interventionId.", e)
+        }
+    }
+
+    suspend fun approveIntervention(sessionId: String, interventionId: Int): Result<InterventionRequest> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/interventions/$interventionId/approve")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Approve intervention failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, InterventionRequest::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to approve intervention $interventionId.", e)
+        }
+    }
+
+    suspend fun denyIntervention(sessionId: String, interventionId: Int, reason: String? = null): Result<InterventionRequest> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/interventions/$interventionId/deny")
+            val jsonBody = if (reason != null) "{\"reason\":\"${reason.replace("\"", "\\\"")}\"}" else "{}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Deny intervention failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, InterventionRequest::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to deny intervention $interventionId.", e)
         }
     }
 
