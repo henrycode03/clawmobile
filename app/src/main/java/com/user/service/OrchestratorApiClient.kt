@@ -17,6 +17,8 @@ import com.user.data.MobileSessionsListResponse
 import com.user.data.MobileTaskDetailResponse
 import com.user.data.MobileTaskActionResponse
 import com.user.data.MobileSessionActionResponse
+import com.user.data.ExecutionFailureSummaryResponse
+import com.user.data.ReplanResponse
 import com.user.data.InterventionListResponse
 import com.user.data.InterventionRequest
 import com.user.data.MobileSessionSummaryResponse
@@ -863,6 +865,62 @@ class OrchestratorApiClient(
             }
         } catch (e: Exception) {
             buildFailure("Failed to deny intervention $interventionId.", e)
+        }
+    }
+
+    // ── Replan Flow ───────────────────────────────────────────────
+
+    suspend fun getFailureSummary(sessionId: String): Result<ExecutionFailureSummaryResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/failure-summary")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Get failure summary failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, ExecutionFailureSummaryResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to load failure summary for session $sessionId.", e)
+        }
+    }
+
+    suspend fun submitOperatorFeedback(sessionId: String, feedback: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/operator-feedback")
+            val jsonBody = "{\"feedback\":\"${feedback.replace("\"", "\\\"")}\"}"
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Submit operator feedback failed (${response.code}).")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to submit operator feedback for session $sessionId.", e)
+        }
+    }
+
+    suspend fun triggerReplan(sessionId: String): Result<ReplanResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/replan")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Trigger replan failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, ReplanResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to trigger replan for session $sessionId.", e)
         }
     }
 

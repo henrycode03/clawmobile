@@ -26,7 +26,7 @@ class InterventionPollService(
     override suspend fun doWork(): Result {
         ensureNotificationChannel()
 
-        val sessions = client.listSessions(status = "waiting_for_human").getOrNull() ?: return Result.success()
+        val sessions = client.listSessions(status = "awaiting_input").getOrNull() ?: return Result.success()
         val lastKnownIds = prefs.lastKnownInterventionSessionIds
         val newSessions = sessions.filter { it.id !in lastKnownIds }
 

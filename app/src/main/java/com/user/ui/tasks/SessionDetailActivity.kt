@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.user.ClawMobileApplication
 import com.user.R
+import com.user.data.ExecutionFailureSummaryResponse
 import com.user.data.InterventionRequest
 import com.user.data.MobileCheckpointListResponse
 import com.user.data.MobileSessionSummaryResponse
@@ -46,6 +47,7 @@ class SessionDetailActivity : AppCompatActivity() {
     private var latestCheckpoints: MobileCheckpointListResponse? = null
     private var currentIntervention: InterventionRequest? = null
     private var isWebSocketOffline = false
+    private var latestFailureSummary: ExecutionFailureSummaryResponse? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +95,7 @@ class SessionDetailActivity : AppCompatActivity() {
         binding.interventionApproveButton.setOnClickListener { handleApproveIntervention() }
         binding.interventionDenyButton.setOnClickListener { handleDenyIntervention() }
         binding.interventionSubmitButton.setOnClickListener { handleSubmitGuidance() }
+        binding.sendToProjectArchitectButton.setOnClickListener { handleSendToProjectArchitect() }
 
         loadSessionData(showToast = false)
     }
@@ -117,6 +120,7 @@ class SessionDetailActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         webSocketManager?.disconnect()
+        binding.liveStatusBanner.visibility = View.GONE
     }
 
     private fun showLiveStatus(text: String, colorRes: Int) {
@@ -178,18 +182,31 @@ class SessionDetailActivity : AppCompatActivity() {
                 currentIntervention = null
                 bindIntervention(null)
             }
+
+            val isStopped = latestSummary?.status?.equals("stopped", ignoreCase = true) == true
+            if (isStopped) {
+                client.getFailureSummary(sessionId).onSuccess { fs ->
+                    latestFailureSummary = fs
+                    bindReplanCard(fs)
+                }.onFailure {
+                    bindReplanCard(null)
+                }
+            } else {
+                latestFailureSummary = null
+                binding.replanCard.visibility = View.GONE
+            }
         }
     }
 
     private fun bindSummary(summary: MobileSessionSummaryResponse) {
         val statusLabel = when (summary.status.lowercase()) {
-            "waiting_for_human" -> "WAITING"
+            "awaiting_input" -> "WAITING"
             else -> summary.status.uppercase()
         }
         binding.sessionStatusBadge.text = statusLabel
         val badgeRes = when (summary.status.lowercase()) {
             "running" -> R.drawable.badge_running
-            "paused", "waiting_for_human" -> R.drawable.badge_pending
+            "paused", "awaiting_input" -> R.drawable.badge_pending
             "stopped" -> R.drawable.badge_timeout
             "completed" -> R.drawable.badge_completed
             else -> R.drawable.badge_pending
@@ -512,6 +529,44 @@ class SessionDetailActivity : AppCompatActivity() {
                 loadSessionData(showToast = false)
             }.onFailure { error ->
                 Snackbar.make(binding.root, error.message ?: "Failed to send guidance", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun bindReplanCard(fs: ExecutionFailureSummaryResponse?) {
+        binding.replanCard.visibility = View.VISIBLE
+        if (!fs?.summary.isNullOrBlank()) {
+            binding.replanFailureSummaryView.text = fs!!.summary
+            binding.replanFailureSummaryView.visibility = View.VISIBLE
+        } else {
+            binding.replanFailureSummaryView.visibility = View.GONE
+        }
+        val existingFeedback = fs?.operatorFeedback
+        if (!existingFeedback.isNullOrBlank() && binding.operatorFeedbackInput.text.isNullOrBlank()) {
+            binding.operatorFeedbackInput.setText(existingFeedback)
+        }
+    }
+
+    private fun handleSendToProjectArchitect() {
+        val client = orchestratorClient ?: return
+        val feedback = binding.operatorFeedbackInput.text?.toString()?.trim().orEmpty()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (feedback.isNotBlank()) {
+                client.submitOperatorFeedback(sessionId, feedback).onFailure { error ->
+                    Snackbar.make(binding.root, error.message ?: "Failed to save feedback", Snackbar.LENGTH_LONG).show()
+                    return@launch
+                }
+            }
+            client.triggerReplan(sessionId).onSuccess { result ->
+                val msg = if (result.newSessionId > 0) {
+                    "Replan started — session #${result.newSessionId} created"
+                } else {
+                    result.message.ifBlank { "Replan triggered" }
+                }
+                Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
+                binding.replanCard.visibility = View.GONE
+            }.onFailure { error ->
+                Snackbar.make(binding.root, error.message ?: "Failed to trigger replan", Snackbar.LENGTH_LONG).show()
             }
         }
     }

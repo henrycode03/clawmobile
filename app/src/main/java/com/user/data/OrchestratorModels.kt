@@ -323,6 +323,20 @@ data class InterventionListResponse(
     val total: Int = 0
 )
 
+data class ExecutionFailureSummaryResponse(
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    val summary: String = "",
+    @SerializedName("operator_feedback")
+    val operatorFeedback: String? = null
+)
+
+data class ReplanResponse(
+    @SerializedName("new_session_id")
+    val newSessionId: Int = 0,
+    val message: String = ""
+)
+
 /**
  * Task statistics for project status response
  */
