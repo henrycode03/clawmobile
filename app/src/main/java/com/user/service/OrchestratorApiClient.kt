@@ -28,6 +28,7 @@ import com.user.data.Project
 import com.user.data.ProjectTreeResponse
 import com.user.data.ProjectStatusResponse
 import com.user.data.ProjectTasksResponse
+import com.user.data.KnowledgeUsageResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -921,6 +922,24 @@ class OrchestratorApiClient(
             }
         } catch (e: Exception) {
             buildFailure("Failed to trigger replan for session $sessionId.", e)
+        }
+    }
+
+    suspend fun getKnowledgeUsage(sessionId: String): Result<KnowledgeUsageResponse> = withContext(Dispatchers.IO) {
+        try {
+            val url = buildApiUrl("sessions/$sessionId/knowledge-usage")
+            val request = Request.Builder()
+                .url(url)
+                .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext buildFailure("Get knowledge usage failed (${response.code}).")
+                val json = response.body?.string() ?: throw Exception("Empty response")
+                Result.success(gson.fromJson(json, KnowledgeUsageResponse::class.java))
+            }
+        } catch (e: Exception) {
+            buildFailure("Failed to load knowledge usage for session $sessionId.", e)
         }
     }
 

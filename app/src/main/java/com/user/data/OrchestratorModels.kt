@@ -347,3 +347,26 @@ data class TaskStatsResponse(
     val done: Int = 0,
     val failed: Int = 0
 )
+
+data class KnowledgeUsageEntry(
+    @SerializedName("knowledge_item_id")
+    val knowledgeItemId: String = "",
+    val title: String = "",
+    @SerializedName("knowledge_type")
+    val knowledgeType: String = "",
+    val confidence: Double = 0.0,
+    @SerializedName("retrieval_reason")
+    val retrievalReason: String = "",
+    @SerializedName("used_in_prompt")
+    val usedInPrompt: Boolean = false,
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+    @SerializedName("task_id")
+    val taskId: Int? = null
+)
+
+data class KnowledgeUsageResponse(
+    @SerializedName("session_id")
+    val sessionId: Int = 0,
+    val phases: Map<String, List<KnowledgeUsageEntry>> = emptyMap()
+)

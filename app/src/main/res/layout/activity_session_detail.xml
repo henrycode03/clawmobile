@@ -451,7 +451,6 @@
             android:layout_marginStart="@dimen/space_lg"
             android:layout_marginTop="@dimen/space_md"
             android:layout_marginEnd="@dimen/space_lg"
-            android:layout_marginBottom="@dimen/space_2xl"
             app:cardBackgroundColor="@color/surface"
             app:cardCornerRadius="@dimen/radius_md"
             app:cardElevation="0dp">
@@ -547,6 +546,40 @@
                     android:fontFamily="sans-serif"
                     android:padding="@dimen/space_md"
                     android:textColor="@color/text_primary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/knowledgeReferencesCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_lg"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_lg"
+            android:layout_marginBottom="@dimen/space_2xl"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="@dimen/radius_md"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_lg">
+
+                <TextView
+                    style="@style/TextAppearance.OpenClaw.SectionTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Knowledge References Used" />
+
+                <TextView
+                    android:id="@+id/knowledgeReferencesView"
+                    style="@style/TextAppearance.OpenClaw.SectionBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

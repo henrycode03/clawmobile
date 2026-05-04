@@ -11,6 +11,8 @@ import com.user.ClawMobileApplication
 import com.user.R
 import com.user.data.ExecutionFailureSummaryResponse
 import com.user.data.InterventionRequest
+import com.user.data.KnowledgeUsageEntry
+import com.user.data.KnowledgeUsageResponse
 import com.user.data.MobileCheckpointListResponse
 import com.user.data.MobileSessionSummaryResponse
 import com.user.data.RecentActivity
@@ -48,6 +50,7 @@ class SessionDetailActivity : AppCompatActivity() {
     private var currentIntervention: InterventionRequest? = null
     private var isWebSocketOffline = false
     private var latestFailureSummary: ExecutionFailureSummaryResponse? = null
+    private var latestKnowledgeUsage: Map<String, List<KnowledgeUsageEntry>> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -194,6 +197,14 @@ class SessionDetailActivity : AppCompatActivity() {
             } else {
                 latestFailureSummary = null
                 binding.replanCard.visibility = View.GONE
+            }
+
+            client.getKnowledgeUsage(sessionId).onSuccess { ku ->
+                latestKnowledgeUsage = ku.phases
+                bindKnowledgeUsage(ku.phases)
+            }.onFailure {
+                latestKnowledgeUsage = emptyMap()
+                binding.knowledgeReferencesCard.visibility = View.GONE
             }
         }
     }
@@ -470,6 +481,24 @@ class SessionDetailActivity : AppCompatActivity() {
                 "Errors"
             else -> "Recent Activity"
         }
+    }
+
+    private fun bindKnowledgeUsage(phases: Map<String, List<KnowledgeUsageEntry>>) {
+        if (phases.isEmpty()) {
+            binding.knowledgeReferencesCard.visibility = View.GONE
+            return
+        }
+        val text = phases.entries.joinToString("\n\n") { (phase, entries) ->
+            val header = phase.replaceFirstChar { it.uppercase() }
+            val items = entries.joinToString("\n") { entry ->
+                val injected = if (entry.usedInPrompt) "injected" else "retrieved"
+                val pct = (entry.confidence * 100).toInt()
+                "• ${entry.title} [${entry.knowledgeType}] — $pct% — $injected\n  ${entry.retrievalReason}"
+            }
+            "$header\n$items"
+        }
+        binding.knowledgeReferencesView.text = text
+        binding.knowledgeReferencesCard.visibility = View.VISIBLE
     }
 
     private fun bindIntervention(intervention: InterventionRequest?) {
