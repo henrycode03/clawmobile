@@ -354,15 +354,20 @@ data class KnowledgeUsageEntry(
     val title: String = "",
     @SerializedName("knowledge_type")
     val knowledgeType: String = "",
-    val confidence: Double = 0.0,
+    @SerializedName("confidence_avg")
+    val confidenceAvg: Double = 0.0,
+    @SerializedName("confidence_max")
+    val confidenceMax: Double = 0.0,
     @SerializedName("retrieval_reason")
     val retrievalReason: String = "",
     @SerializedName("used_in_prompt")
     val usedInPrompt: Boolean = false,
-    @SerializedName("created_at")
-    val createdAt: String? = null,
-    @SerializedName("task_id")
-    val taskId: Int? = null
+    @SerializedName("usage_count")
+    val usageCount: Int = 1,
+    @SerializedName("first_used_at")
+    val firstUsedAt: String? = null,
+    @SerializedName("last_used_at")
+    val lastUsedAt: String? = null
 )
 
 data class KnowledgeUsageResponse(

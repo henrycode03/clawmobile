@@ -492,8 +492,16 @@ class SessionDetailActivity : AppCompatActivity() {
             val header = phase.replaceFirstChar { it.uppercase() }
             val items = entries.joinToString("\n") { entry ->
                 val injected = if (entry.usedInPrompt) "injected" else "retrieved"
-                val pct = (entry.confidence * 100).toInt()
-                "• ${entry.title} [${entry.knowledgeType}] — $pct% — $injected\n  ${entry.retrievalReason}"
+                val pct = (entry.confidenceMax * 100).toInt()
+                val usage = if (entry.usageCount > 1) " — used ${entry.usageCount}x" else ""
+                val timeRange = when {
+                    entry.firstUsedAt != null && entry.lastUsedAt != null &&
+                        entry.firstUsedAt != entry.lastUsedAt ->
+                        "\n  ${entry.firstUsedAt} to ${entry.lastUsedAt}"
+                    entry.lastUsedAt != null -> "\n  ${entry.lastUsedAt}"
+                    else -> ""
+                }
+                "• ${entry.title} [${entry.knowledgeType}] — $pct% — $injected$usage\n  ${entry.retrievalReason}$timeRange"
             }
             "$header\n$items"
         }
