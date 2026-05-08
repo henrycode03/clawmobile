@@ -927,7 +927,7 @@ class OrchestratorApiClient(
 
     suspend fun getKnowledgeUsage(sessionId: String): Result<KnowledgeUsageResponse> = withContext(Dispatchers.IO) {
         try {
-            val url = buildApiUrl("sessions/$sessionId/knowledge-usage")
+            val url = buildMobileUrl("sessions/$sessionId/knowledge-usage")
             val request = Request.Builder()
                 .url(url)
                 .headers(okhttp3.Headers.headersOf(*buildHeadersArray()))
